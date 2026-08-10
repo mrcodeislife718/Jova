@@ -1,5 +1,6 @@
 import { parse } from './parser.js';
 import { reconcileSyntaxIdentity } from './identity.js';
+import { reparseRegion } from './incremental.js';
 
 function assertDocument(document) {
   if (!document || document.type !== 'Document' || typeof document.source !== 'string') throw new TypeError('Expected a JOVA document');
@@ -13,7 +14,7 @@ function replaceDocument(document, next) {
 
 export function createEditSession(document) {
   assertDocument(document);
-  return { document, undoStack: [], redoStack: [], revision: 0 };
+  return { document, undoStack: [], redoStack: [], revision: document.revision ?? 0 };
 }
 
 export function beginTransaction(session, label = 'edit') {
@@ -42,16 +43,26 @@ function applyEdits(source, edits) {
   return next;
 }
 
-export function commitTransaction(transaction) {
+export function commitTransaction(transaction, options = {}) {
   if (!transaction || transaction.closed) throw new Error('Transaction is closed');
   const { session } = transaction;
   const before = session.document.source;
   const after = applyEdits(before, transaction.edits);
-  const parsed = reconcileSyntaxIdentity(session.document, parse(after));
-  session.undoStack.push({ label: transaction.label, before, after, edits: transaction.edits });
+
+  let parsed;
+  if (options.incremental !== false && transaction.edits.length > 0) {
+    try {
+      parsed = reparseRegion(session.document, transaction.edits);
+    } catch {
+      parsed = undefined;
+    }
+  }
+  if (!parsed) parsed = reconcileSyntaxIdentity(session.document, parse(after));
+
+  session.undoStack.push({ label: transaction.label, before, after, edits: transaction.edits.map((edit) => ({ ...edit })) });
   session.redoStack.length = 0;
   session.revision++;
-  replaceDocument(session.document, parsed);
+  if (parsed !== session.document) replaceDocument(session.document, parsed);
   session.document.revision = session.revision;
   session.document.lastChangeRanges = transaction.edits.map(({ start, end, text }) => ({ start, oldEnd: end, newEnd: start + text.length }));
   transaction.closed = true;
@@ -69,6 +80,8 @@ function restore(session, source) {
   session.revision++;
   replaceDocument(session.document, parsed);
   session.document.revision = session.revision;
+  session.document.lastChangeRanges = [];
+  session.document.incremental = { mode: 'history-restore', reparsedBytes: source.length, totalBytes: source.length };
   return session.document;
 }
 
@@ -86,16 +99,18 @@ export function redo(session) {
   return restore(session, entry.after);
 }
 
-export function applyTextEdits(document, edits) {
+export function applyTextEdits(document, edits, options = {}) {
   const session = createEditSession(document);
-  const transaction = beginTransaction(session, 'text edits');
+  const transaction = beginTransaction(session, options.label ?? 'text edits');
   for (const edit of edits) addTextEdit(transaction, edit.start, edit.end, edit.text);
-  return commitTransaction(transaction);
+  return commitTransaction(transaction, options);
 }
 
 export function reparseIncremental(document, edits) {
-  // 0.4 exposes incremental change ranges and identity reconciliation. The parser
-  // currently reparses the resulting document as a correctness-first fallback;
-  // callers can rely on this API while region-based parsing is optimized later.
-  return applyTextEdits(document, edits);
+  const result = reparseRegion(document, edits);
+  if (result) {
+    result.revision = (result.revision ?? 0) + 1;
+    return result;
+  }
+  return applyTextEdits(document, edits, { incremental: false, label: 'incremental fallback' });
 }
