@@ -35,6 +35,15 @@ export function parse(source) {
     while (current()?.type === 'comment') found.push(toComment(tokens[i++]));
     return found;
   };
+  const splitAfterComma = (comma, found) => {
+    const trailing = [];
+    const leading = [];
+    for (const comment of found) {
+      if (comment.start.line === comma.end.line) trailing.push(comment);
+      else leading.push(comment);
+    }
+    return { trailing, leading };
+  };
 
   function parseValueNode(leadingComments = []) {
     const token = current();
@@ -98,7 +107,7 @@ export function parse(source) {
         writable: true,
       });
 
-      members.push({
+      const member = {
         type: 'Member',
         key: keyToken.value,
         start: keyToken.start,
@@ -108,7 +117,8 @@ export function parse(source) {
         beforeValueComments,
         trailingComments,
         value: parsed.node,
-      });
+      };
+      members.push(member);
 
       if (current()?.type === '}') {
         const close = consume('}');
@@ -126,8 +136,10 @@ export function parse(source) {
         };
       }
 
-      consume(',');
-      pending = takeComments();
+      const comma = consume(',');
+      const postComma = splitAfterComma(comma, takeComments());
+      member.trailingComments.push(...postComma.trailing);
+      pending = postComma.leading;
       if (current()?.type === '}') fail('Trailing commas are not allowed');
     }
   }
@@ -160,7 +172,7 @@ export function parse(source) {
       const trailingComments = takeComments();
       const index = out.length;
       out.push(parsed.value);
-      elements.push({
+      const element = {
         type: 'Element',
         index,
         start: parsed.node.start,
@@ -168,7 +180,8 @@ export function parse(source) {
         leadingComments: elementLeading,
         trailingComments,
         value: parsed.node,
-      });
+      };
+      elements.push(element);
 
       if (current()?.type === ']') {
         const close = consume(']');
@@ -186,8 +199,10 @@ export function parse(source) {
         };
       }
 
-      consume(',');
-      pending = takeComments();
+      const comma = consume(',');
+      const postComma = splitAfterComma(comma, takeComments());
+      element.trailingComments.push(...postComma.trailing);
+      pending = postComma.leading;
       if (current()?.type === ']') fail('Trailing commas are not allowed');
     }
   }
