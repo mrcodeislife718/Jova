@@ -1,7 +1,7 @@
 {
   "name": "jova",
-  "version": "0.2.0",
-  "description": "JOVA reference implementation: JSON-compatible structured data with native comments and a comment-preserving document AST.",
+  "version": "0.3.0",
+  "description": "JOVA reference implementation: JSON-compatible structured data with native comments and a lossless editable syntax tree.",
   "type": "module",
   "bin": { "jova": "./src/cli.js" },
   "exports": "./src/index.js",
