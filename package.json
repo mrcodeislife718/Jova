@@ -1,0 +1,11 @@
+{
+  "name": "jova",
+  "version": "0.1.0",
+  "description": "JOVA reference implementation: JSON-compatible structured data with native comments.",
+  "type": "module",
+  "bin": { "jova": "./src/cli.js" },
+  "exports": "./src/index.js",
+  "scripts": { "test": "node --test", "check": "npm test" },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}
