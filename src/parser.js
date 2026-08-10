@@ -1,4 +1,5 @@
 import { tokenize } from './tokenizer.js';
+import { tokenizeLossless } from './lossless.js';
 import { JovaSyntaxError } from './errors.js';
 
 function toComment(token) {
@@ -11,6 +12,22 @@ function scalarType(value) {
   if (typeof value === 'number') return 'Number';
   if (typeof value === 'boolean') return 'Boolean';
   throw new TypeError(`Unsupported scalar type: ${typeof value}`);
+}
+
+function assignNodeIds(node, state = { next: 0 }) {
+  if (!node || typeof node !== 'object') return;
+  node.id ??= `n${state.next++}`;
+  if (node.type === 'Object') {
+    for (const member of node.members) {
+      member.id ??= `n${state.next++}`;
+      assignNodeIds(member.value, state);
+    }
+  } else if (node.type === 'Array') {
+    for (const element of node.elements) {
+      element.id ??= `n${state.next++}`;
+      assignNodeIds(element.value, state);
+    }
+  }
 }
 
 export function parse(source) {
@@ -56,6 +73,7 @@ export function parse(source) {
         node: {
           type: scalarType(token.value),
           value: token.value,
+          raw: source.slice(token.start.offset, token.end.offset),
           start: token.start,
           end: token.end,
           leadingComments,
@@ -110,6 +128,9 @@ export function parse(source) {
       const member = {
         type: 'Member',
         key: keyToken.value,
+        rawKey: source.slice(keyToken.start.offset, keyToken.end.offset),
+        keyStart: keyToken.start,
+        keyEnd: keyToken.end,
         start: keyToken.start,
         end: parsed.node.end,
         leadingComments: memberLeading,
@@ -212,13 +233,15 @@ export function parse(source) {
   const trailingComments = takeComments();
   parsed.node.trailingComments = [...(parsed.node.trailingComments || []), ...trailingComments];
   consume('eof');
+  assignNodeIds(parsed.node);
 
   return {
     type: 'Document',
-    version: '0.2',
+    version: '0.3',
     value: parsed.value,
     ast: parsed.node,
     comments,
+    tokens: tokenizeLossless(source),
     source,
   };
 }
