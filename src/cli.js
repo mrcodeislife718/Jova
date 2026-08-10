@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import { parse, toJSON, fromJSON, stringify } from './index.js';
+import { parse, toJSON, fromJSON, serializeDocument } from './index.js';
 
 const [command, file] = process.argv.slice(2);
 
 function usage(code = 0) {
-  console.log(`jova <command> <file>\n\nCommands:\n  parse      Parse and print semantic value plus comments\n  validate   Validate a JOVA document\n  to-json    Convert JOVA to JSON\n  from-json  Convert JSON to JOVA\n  format     Format JOVA semantic data`);
+  console.log(`jova <command> <file>\n\nCommands:\n  parse      Parse and print semantic value, AST, and comments\n  validate   Validate a JOVA document\n  to-json    Convert JOVA to JSON\n  from-json  Convert JSON to JOVA\n  format     Format JOVA while preserving attached comments`);
   process.exit(code);
 }
 
@@ -36,7 +36,7 @@ try {
       console.log(fromJSON(source));
       break;
     case 'format':
-      console.log(stringify(parse(source).value));
+      console.log(serializeDocument(parse(source)));
       break;
     default:
       console.error(`jova: unknown command ${command}`);
