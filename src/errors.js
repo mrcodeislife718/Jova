@@ -3,6 +3,9 @@ export class JovaSyntaxError extends SyntaxError {
     const suffix = position ? ` at ${position.line}:${position.column}` : '';
     super(`${message}${suffix}`);
     this.name = 'JovaSyntaxError';
-    if (position) Object.assign(this, position);
+    if (position) {
+      this.position = { ...position };
+      Object.assign(this, position);
+    }
   }
 }
