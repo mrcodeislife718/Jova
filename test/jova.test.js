@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   tokenize,
+  tokenizeLossless,
   parse,
   parseValue,
   toJSON,
@@ -11,6 +12,12 @@ import {
   getNode,
   getMember,
   setValue,
+  rawSlice,
+  replaceValue,
+  renameMember,
+  removeValue,
+  insertMember,
+  insertElement,
   JovaSyntaxError,
 } from '../src/index.js';
 
@@ -29,11 +36,13 @@ test('tokenizer preserves line, block, and inline comments', () => {
   assert.ok(comments.every((comment) => comment.start.line >= 1 && comment.start.column >= 1));
 });
 
-test('parser returns JSON semantics plus a structural document AST', () => {
+test('parser returns JSON semantics plus a lossless structural document AST', () => {
   const doc = parse(sample);
   assert.equal(doc.type, 'Document');
-  assert.equal(doc.version, '0.2');
+  assert.equal(doc.version, '0.3');
   assert.equal(doc.ast.type, 'Object');
+  assert.ok(doc.ast.id);
+  assert.ok(doc.tokens.length > 0);
   assert.deepEqual(doc.value, {
     app: 'JOVA',
     timeout: 5000,
@@ -41,6 +50,21 @@ test('parser returns JSON semantics plus a structural document AST', () => {
   });
   assert.equal(doc.comments.length, 3);
   assert.equal(doc.source, sample);
+});
+
+test('lossless tokens reconstruct the source byte for byte', () => {
+  const tokens = tokenizeLossless(sample);
+  assert.equal(tokens.filter((token) => token.type !== 'eof').map((token) => token.raw).join(''), sample);
+  assert.ok(tokens.some((token) => token.type === 'trivia' && token.kind === 'whitespace'));
+  assert.equal(new Set(tokens.map((token) => token.id)).size, tokens.length);
+});
+
+test('raw literals and property order are retained by the AST', () => {
+  const doc = parse('{"z":1e2,"a":"x\\n"}');
+  assert.deepEqual(doc.ast.members.map((member) => member.key), ['z', 'a']);
+  assert.equal(getNode(doc, ['z']).raw, '1e2');
+  assert.equal(getNode(doc, ['a']).raw, '"x\\n"');
+  assert.equal(rawSlice(doc, getNode(doc, ['z'])), '1e2');
 });
 
 test('comments attach to the members they describe', () => {
@@ -68,6 +92,36 @@ test('nested comments stay attached to nested members', () => {
   assert.equal(host.leadingComments.length, 1);
   assert.equal(host.leadingComments[0].text.trim(), 'database host');
   assert.equal(getNode(doc, ['database', 'host']).type, 'String');
+});
+
+test('lossless replace changes only the selected value bytes', () => {
+  const source = '{  "a" : 1, // keep\n\t"b":2 }';
+  const doc = parse(source);
+  replaceValue(doc, ['b'], 300);
+  assert.equal(doc.source, '{  "a" : 1, // keep\n\t"b":300 }');
+  assert.deepEqual(doc.value, { a: 1, b: 300 });
+});
+
+test('lossless rename changes only the quoted key token', () => {
+  const doc = parse('{ "old"  : 1 }');
+  renameMember(doc, ['old'], 'new');
+  assert.equal(doc.source, '{ "new"  : 1 }');
+  assert.deepEqual(doc.value, { new: 1 });
+});
+
+test('insert and remove object members produce valid JOVA', () => {
+  const doc = parse('{\n  "a": 1\n}');
+  insertMember(doc, [], 'b', 2);
+  assert.deepEqual(doc.value, { a: 1, b: 2 });
+  removeValue(doc, ['a']);
+  assert.deepEqual(doc.value, { b: 2 });
+  assert.deepEqual(parseValue(doc.source), { b: 2 });
+});
+
+test('array insertion preserves valid semantics', () => {
+  const doc = parse('[1, 3]');
+  insertElement(doc, [], 1, 2);
+  assert.deepEqual(doc.value, [1, 2, 3]);
 });
 
 test('document values can change without losing attached comments', () => {
