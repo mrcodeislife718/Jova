@@ -1,6 +1,5 @@
 import { parse } from './parser.js';
-import { tokenize } from './tokenizer.js';
-import { tokenizeLossless } from './lossless.js';
+import { relexRegion } from './lossless.js';
 import { reconcileSyntaxIdentity } from './identity.js';
 
 function assertDocument(document) {
@@ -132,8 +131,8 @@ function shiftOffsetsAfter(node, threshold, delta, source) {
   else if (node.type === 'Member' || node.type === 'Element') shiftOffsetsAfter(node.value, threshold, delta, source);
 }
 
-function commentsFromSource(source) {
-  return tokenize(source)
+function commentsFromTokens(tokens) {
+  return tokens
     .filter((token) => token.type === 'comment')
     .map((token) => ({ ...token.value, start: token.start, end: token.end }));
 }
@@ -156,10 +155,11 @@ export function reparseRegion(document, edits) {
   const newFragment = applyEdits(oldFragment, localEdits);
   const newSource = applyEdits(document.source, edits);
 
-  // This is the semantic parse: only the smallest enclosing value subtree is parsed.
+  // Semantic parsing and lexing are both confined to the smallest safe value region.
   const parsedFragment = parse(newFragment);
   const shiftedSubtree = shiftNode(parsedFragment.ast, newSource, oldRegionStart);
   reconcileSyntaxIdentity({ ast: region.node }, { ast: shiftedSubtree });
+  const tokens = relexRegion(document, oldRegionStart, oldRegionEnd, newFragment, newSource);
 
   const delta = newFragment.length - oldFragment.length;
   const nextAst = document.ast;
@@ -173,8 +173,8 @@ export function reparseRegion(document, edits) {
     source: newSource,
     ast,
     value,
-    comments: commentsFromSource(newSource),
-    tokens: tokenizeLossless(newSource),
+    comments: commentsFromTokens(tokens),
+    tokens,
     lastChangeRanges: edits.map(({ start, end, text }) => ({ start, oldEnd: end, newEnd: start + text.length })),
     incremental: {
       mode: region.path.length === 0 ? 'root-region' : 'subtree-region',
@@ -182,6 +182,7 @@ export function reparseRegion(document, edits) {
       oldRange: { start: oldRegionStart, end: oldRegionEnd },
       newRange: { start: oldRegionStart, end: oldRegionStart + newFragment.length },
       reparsedBytes: newFragment.length,
+      relexedBytes: newFragment.length,
       totalBytes: newSource.length,
     },
   };
