@@ -4,12 +4,17 @@ export { parse, parseValue } from './parser.js';
 export { stringify, serializeDocument } from './serializer.js';
 export { toJSON, fromJSON } from './convert.js';
 export { getNode, getMember, setValue, createValueNode } from './document.js';
+export { replaceValue, renameMember, removeValue, insertMember, insertElement, moveValue } from './edit.js';
+export { walkSyntax, reconcileSyntaxIdentity } from './identity.js';
 export {
-  replaceValue,
-  renameMember,
-  removeValue,
-  insertMember,
-  insertElement,
-  moveValue,
-} from './edit.js';
+  createEditSession,
+  beginTransaction,
+  addTextEdit,
+  commitTransaction,
+  rollbackTransaction,
+  undo,
+  redo,
+  applyTextEdits,
+  reparseIncremental,
+} from './transaction.js';
 export { JovaSyntaxError } from './errors.js';
