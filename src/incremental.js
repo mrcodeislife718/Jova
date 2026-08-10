@@ -1,4 +1,6 @@
 import { parse } from './parser.js';
+import { tokenize } from './tokenizer.js';
+import { tokenizeLossless } from './lossless.js';
 import { reconcileSyntaxIdentity } from './identity.js';
 
 function assertDocument(document) {
@@ -18,9 +20,7 @@ function applyEdits(source, edits) {
   let lastStart = source.length + 1;
   let next = source;
   for (const edit of sorted) {
-    if (!Number.isInteger(edit.start) || !Number.isInteger(edit.end) || edit.start < 0 || edit.end < edit.start) {
-      throw new RangeError('Invalid edit range');
-    }
+    if (!Number.isInteger(edit.start) || !Number.isInteger(edit.end) || edit.start < 0 || edit.end < edit.start) throw new RangeError('Invalid edit range');
     if (typeof edit.text !== 'string') throw new TypeError('Edit text must be a string');
     if (edit.end > lastStart) throw new RangeError('Overlapping text edits are not allowed');
     if (edit.end > source.length) throw new RangeError('Edit range exceeds source length');
@@ -59,43 +59,29 @@ function offsetToPosition(source, offset) {
   return { offset, line, column };
 }
 
-function shiftPosition(position, fragmentSource, absoluteSource, baseOffset) {
+function shiftPosition(position, absoluteSource, baseOffset) {
   if (!position) return position;
   return offsetToPosition(absoluteSource, baseOffset + position.offset);
 }
 
-function shiftComment(comment, fragmentSource, absoluteSource, baseOffset) {
-  return {
-    ...comment,
-    start: shiftPosition(comment.start, fragmentSource, absoluteSource, baseOffset),
-    end: shiftPosition(comment.end, fragmentSource, absoluteSource, baseOffset),
-  };
+function shiftComment(comment, absoluteSource, baseOffset) {
+  return { ...comment, start: shiftPosition(comment.start, absoluteSource, baseOffset), end: shiftPosition(comment.end, absoluteSource, baseOffset) };
 }
 
-function shiftNode(node, fragmentSource, absoluteSource, baseOffset) {
+function shiftNode(node, absoluteSource, baseOffset) {
   if (!node || typeof node !== 'object') return node;
   const shifted = { ...node };
-  if (node.start) shifted.start = shiftPosition(node.start, fragmentSource, absoluteSource, baseOffset);
-  if (node.end) shifted.end = shiftPosition(node.end, fragmentSource, absoluteSource, baseOffset);
-  if (node.keyStart) shifted.keyStart = shiftPosition(node.keyStart, fragmentSource, absoluteSource, baseOffset);
-  if (node.keyEnd) shifted.keyEnd = shiftPosition(node.keyEnd, fragmentSource, absoluteSource, baseOffset);
+  if (node.start) shifted.start = shiftPosition(node.start, absoluteSource, baseOffset);
+  if (node.end) shifted.end = shiftPosition(node.end, absoluteSource, baseOffset);
+  if (node.keyStart) shifted.keyStart = shiftPosition(node.keyStart, absoluteSource, baseOffset);
+  if (node.keyEnd) shifted.keyEnd = shiftPosition(node.keyEnd, absoluteSource, baseOffset);
   for (const key of ['leadingComments', 'trailingComments', 'beforeColonComments', 'beforeValueComments', 'danglingComments']) {
-    if (node[key]) shifted[key] = node[key].map((comment) => shiftComment(comment, fragmentSource, absoluteSource, baseOffset));
+    if (node[key]) shifted[key] = node[key].map((comment) => shiftComment(comment, absoluteSource, baseOffset));
   }
-  if (node.type === 'Object') {
-    shifted.members = node.members.map((member) => shiftNode(member, fragmentSource, absoluteSource, baseOffset));
-  } else if (node.type === 'Array') {
-    shifted.elements = node.elements.map((element) => shiftNode(element, fragmentSource, absoluteSource, baseOffset));
-  } else if (node.type === 'Member' || node.type === 'Element') {
-    shifted.value = shiftNode(node.value, fragmentSource, absoluteSource, baseOffset);
-  }
+  if (node.type === 'Object') shifted.members = node.members.map((member) => shiftNode(member, absoluteSource, baseOffset));
+  else if (node.type === 'Array') shifted.elements = node.elements.map((element) => shiftNode(element, absoluteSource, baseOffset));
+  else if (node.type === 'Member' || node.type === 'Element') shifted.value = shiftNode(node.value, absoluteSource, baseOffset);
   return shifted;
-}
-
-function getValueAtPath(value, path) {
-  let current = value;
-  for (const segment of path) current = current?.[segment];
-  return current;
 }
 
 function setValueAtPath(root, path, value) {
@@ -139,14 +125,17 @@ function shiftOffsetsAfter(node, threshold, delta, source) {
   if (node.keyStart) node.keyStart = shift(node.keyStart);
   if (node.keyEnd) node.keyEnd = shift(node.keyEnd);
   for (const key of ['leadingComments', 'trailingComments', 'beforeColonComments', 'beforeValueComments', 'danglingComments']) {
-    for (const comment of node[key] || []) {
-      comment.start = shift(comment.start);
-      comment.end = shift(comment.end);
-    }
+    for (const comment of node[key] || []) { comment.start = shift(comment.start); comment.end = shift(comment.end); }
   }
   if (node.type === 'Object') for (const member of node.members) shiftOffsetsAfter(member, threshold, delta, source);
   else if (node.type === 'Array') for (const element of node.elements) shiftOffsetsAfter(element, threshold, delta, source);
   else if (node.type === 'Member' || node.type === 'Element') shiftOffsetsAfter(node.value, threshold, delta, source);
+}
+
+function commentsFromSource(source) {
+  return tokenize(source)
+    .filter((token) => token.type === 'comment')
+    .map((token) => ({ ...token.value, start: token.start, end: token.end }));
 }
 
 export function reparseRegion(document, edits) {
@@ -161,39 +150,42 @@ export function reparseRegion(document, edits) {
   const oldRegionStart = region.node.start.offset;
   const oldRegionEnd = region.node.end.offset;
   const localEdits = edits.map((edit) => ({ start: edit.start - oldRegionStart, end: edit.end - oldRegionStart, text: edit.text }));
-  if (localEdits.some((edit) => edit.start < 0 || edit.end > oldRegionEnd - oldRegionStart)) {
-    return undefined;
-  }
+  if (localEdits.some((edit) => edit.start < 0 || edit.end > oldRegionEnd - oldRegionStart)) return undefined;
 
   const oldFragment = document.source.slice(oldRegionStart, oldRegionEnd);
   const newFragment = applyEdits(oldFragment, localEdits);
   const newSource = applyEdits(document.source, edits);
+
+  // This is the semantic parse: only the smallest enclosing value subtree is parsed.
   const parsedFragment = parse(newFragment);
-  const shiftedSubtree = shiftNode(parsedFragment.ast, newFragment, newSource, oldRegionStart);
+  const shiftedSubtree = shiftNode(parsedFragment.ast, newSource, oldRegionStart);
   reconcileSyntaxIdentity({ ast: region.node }, { ast: shiftedSubtree });
 
   const delta = newFragment.length - oldFragment.length;
   const nextAst = document.ast;
   if (delta !== 0) shiftOffsetsAfter(nextAst, oldRegionEnd, delta, newSource);
   const ast = replaceAstAtPath(nextAst, region.path, shiftedSubtree);
+  const value = setValueAtPath(document.value, region.path, structuredClone(parsedFragment.value));
 
-  let value = document.value;
-  value = setValueAtPath(value, region.path, structuredClone(parsedFragment.value));
-
-  // Comments and lossless token positions are rebuilt from the complete source for now;
-  // semantic parsing itself is confined to the smallest enclosing value region.
-  const shell = parse(newSource);
-  shell.ast = ast;
-  shell.value = value;
-  shell.incremental = {
-    mode: region.path.length === 0 ? 'root-region' : 'subtree-region',
-    path: region.path,
-    oldRange: { start: oldRegionStart, end: oldRegionEnd },
-    newRange: { start: oldRegionStart, end: oldRegionStart + newFragment.length },
-    reparsedBytes: newFragment.length,
-    totalBytes: newSource.length,
+  const next = {
+    ...document,
+    version: '0.4',
+    source: newSource,
+    ast,
+    value,
+    comments: commentsFromSource(newSource),
+    tokens: tokenizeLossless(newSource),
+    lastChangeRanges: edits.map(({ start, end, text }) => ({ start, oldEnd: end, newEnd: start + text.length })),
+    incremental: {
+      mode: region.path.length === 0 ? 'root-region' : 'subtree-region',
+      path: region.path,
+      oldRange: { start: oldRegionStart, end: oldRegionEnd },
+      newRange: { start: oldRegionStart, end: oldRegionStart + newFragment.length },
+      reparsedBytes: newFragment.length,
+      totalBytes: newSource.length,
+    },
   };
-  return replaceDocument(document, shell);
+  return replaceDocument(document, next);
 }
 
 export function smallestReparseRegion(document, edits) {
