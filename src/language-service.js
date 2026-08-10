@@ -1,12 +1,11 @@
 import { parse } from './parser.js';
+import { parseTolerant } from './recovery.js';
 import { reparseIncremental } from './transaction.js';
 import { tokenAt } from './lossless.js';
 import { JovaSyntaxError } from './errors.js';
 
 function positionToOffset(source, position) {
-  if (!position || !Number.isInteger(position.line) || !Number.isInteger(position.character)) {
-    throw new TypeError('Position must contain zero-based line and character');
-  }
+  if (!position || !Number.isInteger(position.line) || !Number.isInteger(position.character)) throw new TypeError('Position must contain zero-based line and character');
   const lines = source.split('\n');
   if (position.line < 0 || position.line >= lines.length) return source.length;
   let offset = 0;
@@ -25,10 +24,7 @@ function offsetToLspPosition(source, offset) {
 }
 
 function nodeRange(source, node) {
-  return {
-    start: offsetToLspPosition(source, node.start.offset),
-    end: offsetToLspPosition(source, node.end.offset),
-  };
+  return { start: offsetToLspPosition(source, node.start.offset), end: offsetToLspPosition(source, node.end.offset) };
 }
 
 function syntaxErrorDiagnostic(source, error) {
@@ -36,6 +32,20 @@ function syntaxErrorDiagnostic(source, error) {
   const start = offsetToLspPosition(source, offset);
   const end = offsetToLspPosition(source, Math.min(source.length, offset + 1));
   return { severity: 1, source: 'jova', code: 'syntax', message: error.message, range: { start, end } };
+}
+
+function recoveryDiagnosticToLsp(source, item) {
+  return {
+    severity: item.severity ?? 1,
+    source: 'jova',
+    code: item.code ?? 'incomplete-syntax',
+    message: item.expected?.length ? `${item.message}. Expected: ${item.expected.join(', ')}` : item.message,
+    range: {
+      start: offsetToLspPosition(source, item.start.offset),
+      end: offsetToLspPosition(source, item.end.offset),
+    },
+    data: { expected: item.expected ?? [] },
+  };
 }
 
 export function validateText(source) {
@@ -49,15 +59,13 @@ export function validateText(source) {
 }
 
 function symbolChildren(source, node) {
+  if (!node || node.type === 'Recovery') return [];
   if (node.type === 'Object') {
     return node.members.map((member) => ({
       name: member.key,
       kind: member.value.type === 'Object' ? 19 : member.value.type === 'Array' ? 18 : 13,
       range: nodeRange(source, member),
-      selectionRange: {
-        start: offsetToLspPosition(source, member.keyStart.offset),
-        end: offsetToLspPosition(source, member.keyEnd.offset),
-      },
+      selectionRange: { start: offsetToLspPosition(source, member.keyStart.offset), end: offsetToLspPosition(source, member.keyEnd.offset) },
       children: symbolChildren(source, member.value),
       jovaNodeId: member.id,
     }));
@@ -94,50 +102,65 @@ export function hoverAt(document, position) {
   };
 }
 
+function applyChangesToSource(source, changes) {
+  let next = source;
+  const edits = changes.map((change) => {
+    if (!change.range) return { start: 0, end: source.length, text: change.text };
+    return {
+      start: positionToOffset(source, change.range.start),
+      end: positionToOffset(source, change.range.end),
+      text: change.text,
+    };
+  }).sort((a, b) => b.start - a.start);
+  for (const edit of edits) next = next.slice(0, edit.start) + edit.text + next.slice(edit.end);
+  return { source: next, edits };
+}
+
 export function createDocumentStore() {
   const documents = new Map();
 
   return {
     open(uri, text, version = 1) {
       if (typeof uri !== 'string' || typeof text !== 'string') throw new TypeError('uri and text are required');
-      const document = parse(text);
-      documents.set(uri, { uri, version, document });
+      const document = parseTolerant(text);
+      documents.set(uri, { uri, version, document, lastValid: document.incomplete ? undefined : document });
       return document;
     },
 
-    get(uri) {
-      return documents.get(uri)?.document;
-    },
-
-    version(uri) {
-      return documents.get(uri)?.version;
-    },
+    get(uri) { return documents.get(uri)?.document; },
+    version(uri) { return documents.get(uri)?.version; },
 
     update(uri, changes, version) {
       const entry = documents.get(uri);
       if (!entry) throw new RangeError(`JOVA document is not open: ${uri}`);
       if (!Array.isArray(changes)) throw new TypeError('changes must be an array');
-      const edits = changes.map((change) => {
-        if (!change.range) return { start: 0, end: entry.document.source.length, text: change.text };
-        return {
-          start: positionToOffset(entry.document.source, change.range.start),
-          end: positionToOffset(entry.document.source, change.range.end),
-          text: change.text,
-        };
-      });
-      reparseIncremental(entry.document, edits);
+      const applied = applyChangesToSource(entry.document.source, changes);
+
+      if (!entry.document.incomplete) {
+        try {
+          reparseIncremental(entry.document, applied.edits);
+          entry.lastValid = structuredClone(entry.document);
+        } catch (error) {
+          if (!(error instanceof JovaSyntaxError)) throw error;
+          entry.document = parseTolerant(applied.source, entry.lastValid ?? entry.document);
+        }
+      } else {
+        const tolerant = parseTolerant(applied.source, entry.lastValid ?? entry.document.lastValidDocument);
+        entry.document = tolerant;
+        if (!tolerant.incomplete) entry.lastValid = structuredClone(tolerant);
+      }
+
       entry.version = version ?? entry.version + 1;
       return entry.document;
     },
 
-    close(uri) {
-      return documents.delete(uri);
-    },
+    close(uri) { return documents.delete(uri); },
 
     diagnostics(uri) {
       const entry = documents.get(uri);
       if (!entry) return [];
-      return validateText(entry.document.source);
+      if (entry.document.incomplete) return (entry.document.diagnostics ?? []).map((item) => recoveryDiagnosticToLsp(entry.document.source, item));
+      return [];
     },
 
     symbols(uri) {
