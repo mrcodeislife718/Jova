@@ -6,6 +6,7 @@ export { toJSON, fromJSON } from './convert.js';
 export { getNode, getMember, setValue, createValueNode } from './document.js';
 export { replaceValue, renameMember, removeValue, insertMember, insertElement, moveValue } from './edit.js';
 export { walkSyntax, reconcileSyntaxIdentity } from './identity.js';
+export { reparseRegion, smallestReparseRegion } from './incremental.js';
 export {
   createEditSession,
   beginTransaction,
