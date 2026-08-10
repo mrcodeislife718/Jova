@@ -18,4 +18,12 @@ export {
   applyTextEdits,
   reparseIncremental,
 } from './transaction.js';
+export {
+  createDocumentStore,
+  validateText,
+  documentSymbols,
+  hoverAt,
+  positionToOffset,
+  offsetToLspPosition,
+} from './language-service.js';
 export { JovaSyntaxError } from './errors.js';
