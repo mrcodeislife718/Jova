@@ -1,6 +1,6 @@
-# JOVA 0.4 Grammar, Lossless Document Model, and Incremental Editing
+# JOVA 0.4 Grammar, Lossless Document Model, Incremental Editing, and Recovery
 
-JOVA preserves the JSON value model while adding native comments, lossless syntax, persistent syntax identity reconciliation, transactional editing, regional reparsing, and editor-facing document services.
+JOVA preserves the JSON value model while adding native comments, lossless syntax, persistent syntax identity reconciliation, transactional editing, regional reparsing, editor-facing document services, and error-tolerant editing states.
 
 ## Lexical grammar
 
@@ -19,7 +19,7 @@ Strings, escapes, Unicode escapes, and numbers follow RFC 8259 JSON syntax. Trai
 
 ## Document model
 
-`parse(source)` returns a `Document` containing:
+`parse(source)` returns a strict `Document` containing:
 
 - `value`: JSON-equivalent semantic data.
 - `ast`: Object, Member, Array, Element, String, Number, Boolean, and Null syntax nodes.
@@ -30,6 +30,8 @@ Strings, escapes, Unicode escapes, and numbers follow RFC 8259 JSON syntax. Trai
 - `lastChangeRanges`: ranges changed by the most recent transaction.
 
 Comments and trivia are syntax metadata and never become application data unless explicitly inspected.
+
+`parseTolerant(source, previousDocument)` is the editor-oriented counterpart. When source is temporarily invalid, it returns an incomplete document instead of throwing away the last useful syntax model.
 
 ## Lossless syntax
 
@@ -43,16 +45,7 @@ A same-line comment after a comma belongs to the preceding value. A comment begi
 
 ## Source-oriented editing
 
-JOVA provides local editing operations including:
-
-- `replaceValue`
-- `renameMember`
-- `removeValue`
-- `insertMember`
-- `insertElement`
-- `moveValue`
-
-These operations modify source ranges rather than canonicalizing the complete document.
+JOVA provides local editing operations including `replaceValue`, `renameMember`, `removeValue`, `insertMember`, `insertElement`, and `moveValue`. These operations modify source ranges rather than canonicalizing the complete document.
 
 ## Transactional editing
 
@@ -71,12 +64,7 @@ A transaction contains one or more non-overlapping text edits. Commit applies th
 
 ## Persistent syntax identity
 
-`reconcileSyntaxIdentity(previous, next)` preserves syntax IDs where identity can be established across a reparse.
-
-JOVA 0.4 uses two matching strategies:
-
-1. structural-position matching for nodes that remain in the same structural role, which preserves identity across local value changes and property renames;
-2. semantic fingerprints as a fallback for nodes that move while retaining recognizable structure or value.
+`reconcileSyntaxIdentity(previous, next)` preserves syntax IDs where identity can be established across a reparse. JOVA 0.4 uses structural-position matching for nodes that remain in the same structural role and semantic fingerprints as a fallback for recognizable moved nodes.
 
 Identity is document-local. It is intended for editor state, selections, diagnostics, symbols, and incremental tooling; it is not a globally persistent object identifier.
 
@@ -96,16 +84,58 @@ The lossless token layer is also updated regionally. Tokens before and after an 
 
 This means an ordinary scalar edit can preserve both AST identity and lossless token identity outside the changed region.
 
+## Error-tolerant editing and recovery
+
+Editors routinely produce temporarily invalid source while a developer is typing. JOVA 0.4 therefore provides `parseTolerant()` and recovery-aware document-store behavior.
+
+Example intermediate state:
+
+```jova
+{
+  "database": {
+    "host":
+  }
+}
+```
+
+Instead of discarding the previous AST, the tolerant parser returns a document with:
+
+- `incomplete: true`;
+- `diagnostics` describing the damaged region;
+- `recoveryNodes` representing missing or incomplete syntax;
+- `expected` token/value categories where they can be inferred;
+- the last valid semantic value and syntax tree when a previous document is supplied;
+- preserved syntax-node identity for retained nodes.
+
+Recovery nodes use `type: "Recovery"` and carry their source range, raw damaged text, expected syntax, and diagnostic message. Recovery nodes are syntax-only and never become application data.
+
+The current recovery layer recognizes important active-edit cases including missing values, missing colons, unterminated strings, unterminated block comments, and unfinished object/array structures. This is deliberately recovery-oriented rather than permissive parsing: invalid JOVA remains invalid for strict parsing and validation.
+
+When the source becomes valid again, the document store automatically returns to the strict document model and clears recovery diagnostics.
+
+## AST continuity through malformed source
+
+`createDocumentStore()` retains the last valid document while an open file enters an incomplete state. Symbols and other structural editor features can therefore continue using the prior valid AST instead of disappearing after every incomplete keystroke.
+
+This continuity model distinguishes three things explicitly:
+
+1. current source text — including malformed intermediate text;
+2. current diagnostics/recovery nodes — describing what is incomplete;
+3. last valid semantic/structural state — used to keep editor features stable until valid syntax is restored.
+
+JOVA does not silently treat malformed source as valid configuration data.
+
 ## Language-service foundation
 
 JOVA 0.4 exposes editor-facing primitives that a VS Code extension or Language Server Protocol adapter can use:
 
-- `createDocumentStore()` for open/update/close lifecycle.
-- incremental text updates with document versions.
-- `validateText()` for syntax diagnostics.
-- `documentSymbols()` for hierarchical document symbols.
-- `hoverAt()` for token-aware hover information.
-- `positionToOffset()` and `offsetToLspPosition()` for editor coordinate conversion.
+- `createDocumentStore()` for open/update/close lifecycle;
+- incremental text updates with document versions;
+- recovery-aware diagnostics during malformed edits;
+- `documentSymbols()` for hierarchical document symbols that survive incomplete typing states;
+- `hoverAt()` for token-aware hover information;
+- `positionToOffset()` and `offsetToLspPosition()` for editor coordinate conversion;
+- `parseTolerant()` and `isRecoveryNode()` for editor-specific recovery behavior.
 
 These APIs are transport-independent. They do not require VS Code and can be used by any editor integration.
 
@@ -115,4 +145,6 @@ Every valid JSON document remains valid JOVA syntax. JOVA comments require a JOV
 
 ## Current boundary
 
-JOVA 0.4 performs genuine subtree semantic reparsing and regional lossless lexing when edits are contained within a safe value region. Root-level or unsafe structural changes may still use a full parse. Future work can expand safe-region detection and add parser recovery so incomplete documents remain useful while a developer is actively typing.
+JOVA 0.4 now supports genuine subtree semantic reparsing, regional lossless lexing, transactional editing, persistent identity reconciliation, and error-tolerant editor states. Recovery currently preserves the last valid AST and overlays recovery metadata rather than constructing a fully mixed valid/error tree for every malformed production.
+
+Future work can deepen damaged-region parsing so valid siblings inside a malformed subtree continue updating independently, add richer expected-token sets and fix suggestions, and connect these primitives to a full Language Server Protocol transport and VS Code extension.
