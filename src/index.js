@@ -37,4 +37,5 @@ export {
   recoverEditorDocument,
 } from './editor-intelligence.js';
 export { createLanguageServer } from './lsp-server.js';
+export { encodeMessage, MessageReader, runStdioServer } from './lsp-stdio.js';
 export { JovaSyntaxError } from './errors.js';
