@@ -1,80 +1,105 @@
 # Scout
 
-**JSON with comments — designed for configuration, readable by humans, predictable for machines.**
+**JSON you can actually write.**
 
-Scout keeps JSON's familiar data model while adding native comments, lossless document editing, resilient parsing, and editor tooling.
+Scout is a human-friendly, JSON-compatible structured-data format for configuration, manifests, tooling, and machine-readable documents. Scout keeps JSON's familiar value model while adding the two authoring features developers repeatedly need: **native comments** and **trailing commas**.
 
 ```scout
 {
   // Application configuration
   "app": {
     "name": "My Application",
-    "version": "1.0.0"
+    "version": "1.0.0",
   },
 
-  // Production database settings
+  /* Production database settings */
   "database": {
     "host": "localhost",
-    "port": 5432
-  }
+    "port": 5432,
+  },
 }
 ```
 
-> Keep the parts of JSON that made it universal while making configuration files easier to explain, maintain, and work with.
+Scout files use the **`.scout`** extension.
 
-## Why Scout?
+## What Scout is
 
-JSON is excellent for structured data, but configuration and machine-readable documents often need human context. Scout lets documentation live beside the values it explains without turning configuration into executable code.
+Scout is a data format, not a programming language. A `.scout` document is never executable simply because it is Scout. Parsing Scout produces ordinary JSON-compatible values plus optional document metadata for comments, source positions, formatting, and editor tooling.
 
-## Core guarantees
+Scout is designed around six guarantees:
 
-- Every valid JSON document remains valid Scout syntax.
+- Every valid JSON document is valid Scout syntax.
 - Scout preserves the JSON value model: object, array, string, number, boolean, and null.
 - `//` line comments and `/* ... */` block comments are native syntax.
-- Comments never become ordinary application data unless a consumer explicitly inspects document metadata.
-- Parsing never executes code.
-- Scout can be converted to standard JSON by removing comment syntax while preserving semantic values.
-- Strict parsing and recovery-oriented editor parsing remain separate.
+- Objects and arrays may contain a trailing comma before their closing delimiter.
+- Comments and trailing commas never change the resulting semantic data value.
+- Parsing Scout never executes code.
 
-## Comment syntax
+## Comments
+
+### Line comments
 
 ```scout
 {
-  // Single-line comment
+  // Public API endpoint
   "api": "https://example.com",
-
-  /* Block comment */
-  "retries": 3,
-
-  "timeout": 5000 // Inline comment
 }
 ```
 
-## Design principles
+### Block comments
 
-**Familiar.** If you know JSON, you already understand basic Scout.
+```scout
+{
+  /* Retry temporary network failures. */
+  "retries": 3,
+}
+```
 
-**Minimal.** Scout does not become a programming language disguised as configuration.
+### Inline comments
 
-**Predictable.** The same document has the same semantic meaning across conforming implementations.
+```scout
+{
+  "timeout": 5000 // milliseconds
+}
+```
 
-**Human-readable.** Comments and formatting can carry context beside structured values.
+Comments are syntax metadata. They do not become application properties unless a consumer explicitly requests the lossless document representation.
 
-**Machine-friendly.** Scout preserves JSON-compatible semantic data.
+## Trailing commas
 
-**Tooling-first.** The document model preserves source ranges, comments, trivia, and syntax identity for editors and automated modification.
-
-## Data model
+Scout permits a single trailing comma after the final object member or array element:
 
 ```scout
 {
   "name": "Scout",
-  "active": true,
   "version": 1,
-  "tags": ["data", "configuration", "developer-tools"],
-  "metadata": null
 }
 ```
+
+```scout
+[
+  "web",
+  "apps",
+  "ai",
+]
+```
+
+The semantic values are equivalent to the corresponding JSON documents without those trailing commas.
+
+## Data model
+
+Scout deliberately keeps JSON's small data model:
+
+```text
+object
+array
+string
+number
+boolean
+null
+```
+
+Scout does not add executable expressions, functions, imports, environment-variable expansion, implicit references, or arbitrary type coercion to the core format.
 
 ## Scout vs JSON
 
@@ -86,17 +111,22 @@ JSON is excellent for structured data, but configuration and machine-readable do
 | Numbers | ✓ | ✓ |
 | Booleans | ✓ | ✓ |
 | Null | ✓ | ✓ |
-| Single-line comments | ✗ | ✓ |
-| Block comments | ✗ | ✓ |
+| `//` comments | ✗ | ✓ |
+| `/* ... */` comments | ✗ | ✓ |
 | Inline comments | ✗ | ✓ |
+| Trailing commas | ✗ | ✓ |
+| JSON-compatible semantic values | ✓ | ✓ |
+| Executable syntax | ✗ | ✗ |
 | Lossless document tooling | Limited | ✓ |
 | Recovery-aware editor parsing | Limited | ✓ |
 
-Scout is not intended to replace JSON as a universal interchange format. Its focus is structured configuration and documents where humans, software, and development tools need to work with the same source.
+## Why Scout exists
+
+JSON is excellent for interchange. Humans also use JSON for configuration, manifests, project settings, deployment metadata, AI configuration, tooling, infrastructure, application settings, and machine-readable documents. Those files often need explanation and frequent editing.
+
+Scout keeps the JSON mental model while making authoring safer and less frustrating.
 
 ## File extension
-
-Scout documents use:
 
 ```text
 .scout
@@ -107,20 +137,39 @@ Examples:
 ```text
 app.scout
 config.scout
+package.scout
+build.scout
+model.scout
 settings.scout
 manifest.scout
 ```
 
+## JSON interoperability
+
+Scout is intended to move cleanly into ordinary JSON whenever a consumer does not understand Scout-specific syntax.
+
+```bash
+scout to-json config.scout
+```
+
+Comments and trailing commas are removed. Semantic values are preserved.
+
+Ordinary JSON can also enter the Scout ecosystem directly because every valid JSON document is valid Scout.
+
+```bash
+scout from-json config.json
+```
+
 ## CLI
 
-The package exposes two binaries:
+The package exposes:
 
 ```text
 scout
 scout-lsp
 ```
 
-Current CLI workflows:
+Core data-format workflows:
 
 ```bash
 scout parse config.scout
@@ -130,7 +179,7 @@ scout to-json config.scout
 scout from-json config.json
 ```
 
-The language server can be started with:
+The language server can run with:
 
 ```bash
 npm run lsp
@@ -145,54 +194,81 @@ scout-lsp
 ## Architecture
 
 ```text
-Scout Source (.scout)
-      │
-      ▼
-Tokenizer + Lossless Lexer
-      │
-      ▼
-Strict Parser / Recovery Parser
-      │
-      ▼
-Scout Document Model
-      │
-      ├── JSON-equivalent semantic value
-      ├── AST
-      ├── comments
-      ├── lossless tokens
-      ├── source ranges
-      └── persistent syntax identity
-      │
-      ▼
-Transactions + Incremental Reparse
-      │
-      ▼
-Formatter / Serializer / Editor Intelligence / LSP
+.scout source
+     │
+     ▼
+Tokenizer + lossless lexer
+     │
+     ▼
+Strict parser ───────── Recovery parser
+     │                         │
+     └────────────┬────────────┘
+                  ▼
+          Scout Document Model
+                  │
+       ┌──────────┼───────────┐
+       ▼          ▼           ▼
+ JSON value     AST       comments/trivia
+       │          │           │
+       └──────────┼───────────┘
+                  ▼
+       source-preserving edits
+                  │
+                  ▼
+ formatter / serializer / LSP
 ```
 
-## Current implementation
+## Lossless document model
 
-Scout 0.4.2 includes:
+Scout tooling can preserve more than the final data value. The document representation can retain:
 
-- strict parsing of JSON-compatible values plus native comments
-- lossless tokens and source preservation
-- comment attachment metadata
-- source-oriented editing
-- edit transactions, undo, and redo
-- persistent syntax identity reconciliation
-- regional incremental reparsing and regional token reuse
-- tolerant recovery parsing for malformed intermediate editing states
-- mixed valid/recovery syntax trees
-- diagnostics and expected-token/value information
-- completion candidates and quick fixes
-- hover, document symbols, folding, selection ranges, and property rename edits
-- recovery-aware document synchronization
-- runnable stdio JSON-RPC Language Server Protocol transport
-- VS Code language support for `.scout`
+- exact source text
+- comments
+- whitespace trivia
+- raw scalar spellings
+- raw quoted keys
+- property order
+- source ranges
+- token identity
+- syntax-node identity
+- trailing-comma presence
 
-## VS Code
+This lets tools update one value without unnecessarily destroying surrounding human context or reformatting unrelated source.
 
-The VS Code extension registers:
+## Editor recovery
+
+Developers create temporarily invalid text while typing. Scout therefore keeps strict parsing separate from recovery-oriented parsing.
+
+For example:
+
+```scout
+{
+  "database": {
+    "host":
+  },
+}
+```
+
+Strict parsing rejects this. Editor recovery can still retain useful structure, identify the missing value, provide diagnostics, and keep editor features stable until the document becomes valid again.
+
+Invalid Scout never silently becomes valid application data.
+
+## LSP and editor tooling
+
+The Scout language service and LSP foundation support features such as:
+
+- diagnostics
+- completion candidates
+- quick fixes
+- hover information
+- document symbols
+- folding ranges
+- selection ranges
+- property rename edits
+- incremental synchronization
+- malformed-edit recovery
+
+VS Code currently registers:
 
 ```text
 Language ID: scout
@@ -200,30 +276,66 @@ Extension:   .scout
 Scope:       source.scout
 ```
 
-See [`VSCODE.md`](./VSCODE.md) for packaging and editor integration details.
+See [`VSCODE.md`](./VSCODE.md).
+
+## Intended use cases
+
+Scout is suitable anywhere structured JSON-like data benefits from human explanation and editing, including:
+
+- application configuration
+- project manifests
+- package/build configuration
+- web tooling
+- server configuration
+- AI and model configuration
+- IoT device configuration
+- embedded-system manifests
+- robotics configuration
+- automotive and simulation configuration
+- infrastructure and deployment metadata
+- developer tools
+- machine-readable documents
+
+Those domains may use Scout for data even when the software consuming the document is written in another language.
+
+## Design laws
+
+**JSON familiarity first.** If you know JSON, you already understand the Scout value model.
+
+**Human context without execution.** Comments explain data; they do not execute.
+
+**Minimal syntax.** Scout does not become a programming language disguised as configuration.
+
+**Deterministic semantics.** The same valid Scout document has the same data meaning across conforming implementations.
+
+**Interop, not lock-in.** Scout always has a clean path to ordinary JSON.
+
+**Tooling is part of the format experience.** Lossless parsing, diagnostics, formatting, schemas, and editor support matter as much as grammar.
+
+## What Scout is not
+
+Scout is not:
+
+- a scripting language
+- a general-purpose programming language
+- a template language
+- an executable configuration runtime
+- an environment-variable engine
+- a shell
+- a replacement for every serialization format
+- a dumping ground for unrelated syntax extensions
+
+Keeping that boundary protects Scout's predictability and portability.
 
 ## Specification
 
 The current grammar and implementation contract live in [`SPEC.md`](./SPEC.md).
 
-## What Scout is not
-
-Scout is not intended to become:
-
-- a scripting language
-- a template engine
-- an executable configuration system
-- an environment-variable runtime
-- a replacement for every serialization format
-- JSON plus an unlimited collection of unrelated syntax extensions
-
-Scout's value depends on staying understandable and deterministic.
-
 ## Project status
 
-**Active development — version 0.4.2.**
+Scout is under active pre-1.0 development. The implementation includes strict and recovery parsing, lossless syntax, source-oriented editing, incremental reparsing, diagnostics, editor intelligence, stdio LSP transport, VS Code support, native comments, and trailing-comma parsing.
 
-The parser, lossless document model, incremental editing system, recovery architecture, LSP transport, and VS Code integration are implemented. The format is still pre-1.0, so compatibility guarantees may continue to evolve until the stable specification is frozen.
+The stable 1.0 specification should be frozen only after the grammar, implementation, conformance suite, formatter, and editor behavior agree.
 
 ## License
 
@@ -231,6 +343,4 @@ MIT
 
 ---
 
-**Scout**
-
-*Structured for machines. Documented for humans.*
+**Scout** — *Structured for machines. Documented for humans.*
