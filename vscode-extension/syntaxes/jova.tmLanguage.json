@@ -1,0 +1,41 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "JOVA",
+  "scopeName": "source.jova",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#constants" },
+    { "include": "#keys" },
+    { "match": "[{}\\[\\],:]", "name": "punctuation.separator.jova" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "begin": "/\\*", "end": "\\*/", "name": "comment.block.jova" },
+        { "match": "//.*$", "name": "comment.line.double-slash.jova" }
+      ]
+    },
+    "strings": {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.jova",
+      "patterns": [
+        { "match": "\\\\(?:[\"\\\\/bfnrt]|u[0-9A-Fa-f]{4})", "name": "constant.character.escape.jova" }
+      ]
+    },
+    "numbers": {
+      "match": "(?<![\\w.])-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?(?![\\w.])",
+      "name": "constant.numeric.jova"
+    },
+    "constants": {
+      "match": "\\b(?:true|false|null)\\b",
+      "name": "constant.language.jova"
+    },
+    "keys": {
+      "match": "\"(?:[^\"\\\\]|\\\\.)*\"(?=\\s*:)",
+      "name": "support.type.property-name.jova"
+    }
+  }
+}
