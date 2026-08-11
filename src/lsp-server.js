@@ -23,7 +23,7 @@ export function createLanguageServer(options = {}) {
             renameProvider: { prepareProvider: false },
             diagnosticProvider: { interFileDependencies: false, workspaceDiagnostics: false },
           },
-          serverInfo: { name: 'jova-language-server', version: '0.4.0' },
+          serverInfo: { name: 'scout-language-server', version: '0.4.2' },
         };
       case 'initialized':
       case 'shutdown':
