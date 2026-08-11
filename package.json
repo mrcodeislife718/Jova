@@ -1,11 +1,18 @@
 {
   "name": "jova",
-  "version": "0.4.1",
-  "description": "JOVA reference implementation with native comments, lossless syntax, transactional editing, resilient mixed-tree recovery, editor intelligence, and LSP transport primitives.",
+  "version": "0.4.2",
+  "description": "JOVA reference implementation with native comments, resilient parsing, editor intelligence, and a runnable language server for .jova files.",
   "type": "module",
-  "bin": { "jova": "./src/cli.js" },
+  "bin": {
+    "jova": "./src/cli.js",
+    "jova-lsp": "./src/lsp-stdio.js"
+  },
   "exports": "./src/index.js",
-  "scripts": { "test": "node --test", "check": "npm test" },
+  "scripts": {
+    "test": "node --test",
+    "check": "npm test",
+    "lsp": "node ./src/lsp-stdio.js"
+  },
   "engines": { "node": ">=20" },
   "license": "MIT"
 }
