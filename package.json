@@ -1,7 +1,7 @@
 {
   "name": "scout",
   "version": "0.5.0",
-  "description": "Scout reference implementation: .scout language tooling, .sdata data format, target profiles, interoperability foundations, editor intelligence, and language server support.",
+  "description": "Scout reference implementation with JSON-compatible values, native comments, trailing commas, lossless editing, resilient parsing, and language-server tooling for .scout files.",
   "type": "module",
   "bin": {
     "scout": "./src/cli.js",
