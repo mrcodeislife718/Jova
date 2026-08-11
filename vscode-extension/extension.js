@@ -11,11 +11,11 @@ function activate(context) {
   };
   const clientOptions = {
     documentSelector: [
-      { scheme: 'file', language: 'jova', pattern: '**/*.jova' },
-      { scheme: 'untitled', language: 'jova' }
+      { scheme: 'file', language: 'scout', pattern: '**/*.scout' },
+      { scheme: 'untitled', language: 'scout' }
     ],
   };
-  client = new LanguageClient('jovaLanguageServer', 'JOVA Language Server', serverOptions, clientOptions);
+  client = new LanguageClient('scoutLanguageServer', 'Scout Language Server', serverOptions, clientOptions);
   context.subscriptions.push(client.start());
 }
 
