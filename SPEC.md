@@ -1,11 +1,11 @@
-# JOVA 0.4 Grammar, Lossless Document Model, Incremental Editing, and Recovery
+# Scout 0.4 Grammar, Lossless Document Model, Incremental Editing, and Recovery
 
-JOVA preserves the JSON value model while adding native comments, lossless syntax, persistent syntax identity reconciliation, transactional editing, regional reparsing, editor-facing document services, and error-tolerant editing states.
+Scout preserves the JSON value model while adding native comments, lossless syntax, persistent syntax identity reconciliation, transactional editing, regional reparsing, editor-facing document services, and error-tolerant editing states.
 
 ## Lexical grammar
 
 ```ebnf
-jova          = ws, value, ws, EOF ;
+scout         = ws, value, ws, EOF ;
 value         = object | array | string | number | "true" | "false" | "null" ;
 object        = "{", ws, [ member, { ws, ",", ws, member } ], ws, "}" ;
 member        = string, ws, ":", ws, value ;
@@ -15,7 +15,7 @@ line-comment  = "//", { any-char-except-LF }, [ LF ] ;
 block-comment = "/*", { any-char-until-*/ }, "*/" ;
 ```
 
-Strings, escapes, Unicode escapes, and numbers follow RFC 8259 JSON syntax. Trailing commas are not part of JOVA 0.4.
+Strings, escapes, Unicode escapes, and numbers follow RFC 8259 JSON syntax. Trailing commas are not part of Scout 0.4.
 
 ## Document model
 
@@ -45,11 +45,11 @@ A same-line comment after a comma belongs to the preceding value. A comment begi
 
 ## Source-oriented editing
 
-JOVA provides local editing operations including `replaceValue`, `renameMember`, `removeValue`, `insertMember`, `insertElement`, and `moveValue`. These operations modify source ranges rather than canonicalizing the complete document.
+Scout provides local editing operations including `replaceValue`, `renameMember`, `removeValue`, `insertMember`, `insertElement`, and `moveValue`. These operations modify source ranges rather than canonicalizing the complete document.
 
 ## Transactional editing
 
-JOVA 0.4 introduces edit sessions and transactions:
+Scout 0.4 provides edit sessions and transactions:
 
 ```js
 const session = createEditSession(document);
@@ -64,7 +64,7 @@ A transaction contains one or more non-overlapping text edits. Commit applies th
 
 ## Persistent syntax identity
 
-`reconcileSyntaxIdentity(previous, next)` preserves syntax IDs where identity can be established across a reparse. JOVA 0.4 uses structural-position matching for nodes that remain in the same structural role and semantic fingerprints as a fallback for recognizable moved nodes.
+`reconcileSyntaxIdentity(previous, next)` preserves syntax IDs where identity can be established across a reparse. Scout 0.4 uses structural-position matching for nodes that remain in the same structural role and semantic fingerprints as a fallback for recognizable moved nodes.
 
 Identity is document-local. It is intended for editor state, selections, diagnostics, symbols, and incremental tooling; it is not a globally persistent object identifier.
 
@@ -86,11 +86,11 @@ This means an ordinary scalar edit can preserve both AST identity and lossless t
 
 ## Error-tolerant editing and recovery
 
-Editors routinely produce temporarily invalid source while a developer is typing. JOVA 0.4 therefore provides `parseTolerant()` and recovery-aware document-store behavior.
+Editors routinely produce temporarily invalid source while a developer is typing. Scout 0.4 therefore provides `parseTolerant()` and recovery-aware document-store behavior.
 
 Example intermediate state:
 
-```jova
+```scout
 {
   "database": {
     "host":
@@ -109,42 +109,44 @@ Instead of discarding the previous AST, the tolerant parser returns a document w
 
 Recovery nodes use `type: "Recovery"` and carry their source range, raw damaged text, expected syntax, and diagnostic message. Recovery nodes are syntax-only and never become application data.
 
-The current recovery layer recognizes important active-edit cases including missing values, missing colons, unterminated strings, unterminated block comments, and unfinished object/array structures. This is deliberately recovery-oriented rather than permissive parsing: invalid JOVA remains invalid for strict parsing and validation.
+The recovery layer recognizes important active-edit cases including missing values, missing colons, unterminated strings, unterminated block comments, and unfinished object/array structures. This is recovery-oriented rather than permissive parsing: invalid Scout remains invalid for strict parsing and validation.
 
-When the source becomes valid again, the document store automatically returns to the strict document model and clears recovery diagnostics.
+When source becomes valid again, the document store automatically returns to the strict document model and clears recovery diagnostics.
 
 ## AST continuity through malformed source
 
 `createDocumentStore()` retains the last valid document while an open file enters an incomplete state. Symbols and other structural editor features can therefore continue using the prior valid AST instead of disappearing after every incomplete keystroke.
 
-This continuity model distinguishes three things explicitly:
+This continuity model distinguishes:
 
-1. current source text — including malformed intermediate text;
-2. current diagnostics/recovery nodes — describing what is incomplete;
-3. last valid semantic/structural state — used to keep editor features stable until valid syntax is restored.
+1. current source text, including malformed intermediate text;
+2. current diagnostics and recovery nodes;
+3. last valid semantic and structural state.
 
-JOVA does not silently treat malformed source as valid configuration data.
+Scout does not silently treat malformed source as valid configuration data.
 
 ## Language-service foundation
 
-JOVA 0.4 exposes editor-facing primitives that a VS Code extension or Language Server Protocol adapter can use:
+Scout exposes editor-facing primitives including:
 
 - `createDocumentStore()` for open/update/close lifecycle;
 - incremental text updates with document versions;
-- recovery-aware diagnostics during malformed edits;
-- `documentSymbols()` for hierarchical document symbols that survive incomplete typing states;
-- `hoverAt()` for token-aware hover information;
-- `positionToOffset()` and `offsetToLspPosition()` for editor coordinate conversion;
-- `parseTolerant()` and `isRecoveryNode()` for editor-specific recovery behavior.
+- recovery-aware diagnostics;
+- `documentSymbols()`;
+- `hoverAt()`;
+- `positionToOffset()` and `offsetToLspPosition()`;
+- `parseTolerant()` and `isRecoveryNode()`;
+- completion, quick-fix, folding, selection-range, and rename helpers;
+- a JSON-RPC/LSP dispatcher and runnable stdio transport.
 
-These APIs are transport-independent. They do not require VS Code and can be used by any editor integration.
+These APIs are transport-independent and can be used by editor integrations beyond VS Code.
 
 ## Compatibility
 
-Every valid JSON document remains valid JOVA syntax. JOVA comments require a JOVA-aware parser. JOVA-to-JSON conversion removes comments while preserving the semantic value.
+Every valid JSON document remains valid Scout syntax. Scout comments require a Scout-aware parser. Scout-to-JSON conversion removes comments while preserving the semantic value.
 
 ## Current boundary
 
-JOVA 0.4 now supports genuine subtree semantic reparsing, regional lossless lexing, transactional editing, persistent identity reconciliation, and error-tolerant editor states. Recovery currently preserves the last valid AST and overlays recovery metadata rather than constructing a fully mixed valid/error tree for every malformed production.
+Scout 0.4.2 supports subtree semantic reparsing, regional lossless lexing, transactional editing, persistent identity reconciliation, error-tolerant editor states, mixed valid/recovery trees, editor intelligence, and a runnable Language Server Protocol transport.
 
-Future work can deepen damaged-region parsing so valid siblings inside a malformed subtree continue updating independently, add richer expected-token sets and fix suggestions, and connect these primitives to a full Language Server Protocol transport and VS Code extension.
+The format remains pre-1.0. Grammar and compatibility guarantees should be frozen only after the conformance suite and ecosystem contract are ready for a stable release.
