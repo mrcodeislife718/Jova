@@ -1,7 +1,7 @@
 {
   "name": "jova",
-  "version": "0.4.0",
-  "description": "JOVA reference implementation with native comments, lossless syntax, transactional editing, undo/redo, change ranges, and persistent syntax identity reconciliation.",
+  "version": "0.4.1",
+  "description": "JOVA reference implementation with native comments, lossless syntax, transactional editing, resilient mixed-tree recovery, editor intelligence, and LSP transport primitives.",
   "type": "module",
   "bin": { "jova": "./src/cli.js" },
   "exports": "./src/index.js",
