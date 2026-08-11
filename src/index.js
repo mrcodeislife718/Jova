@@ -27,4 +27,12 @@ export {
   positionToOffset,
   offsetToLspPosition,
 } from './language-service.js';
+export {
+  completionCandidates,
+  quickFixes,
+  selectionRanges,
+  foldingRanges,
+  renameEdits,
+  recoverEditorDocument,
+} from './editor-intelligence.js';
 export { JovaSyntaxError } from './errors.js';
