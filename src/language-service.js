@@ -2,7 +2,7 @@ import { parse } from './parser.js';
 import { parseTolerant } from './recovery.js';
 import { reparseIncremental } from './transaction.js';
 import { tokenAt } from './lossless.js';
-import { JovaSyntaxError } from './errors.js';
+import { ScoutSyntaxError } from './errors.js';
 
 function positionToOffset(source, position) {
   if (!position || !Number.isInteger(position.line) || !Number.isInteger(position.character)) throw new TypeError('Position must contain zero-based line and character');
@@ -31,13 +31,13 @@ function syntaxErrorDiagnostic(source, error) {
   const offset = error?.position?.offset ?? 0;
   const start = offsetToLspPosition(source, offset);
   const end = offsetToLspPosition(source, Math.min(source.length, offset + 1));
-  return { severity: 1, source: 'jova', code: 'syntax', message: error.message, range: { start, end } };
+  return { severity: 1, source: 'scout', code: 'syntax', message: error.message, range: { start, end } };
 }
 
 function recoveryDiagnosticToLsp(source, item) {
   return {
     severity: item.severity ?? 1,
-    source: 'jova',
+    source: 'scout',
     code: item.code ?? 'incomplete-syntax',
     message: item.expected?.length ? `${item.message}. Expected: ${item.expected.join(', ')}` : item.message,
     range: {
@@ -53,7 +53,7 @@ export function validateText(source) {
     parse(source);
     return [];
   } catch (error) {
-    if (error instanceof JovaSyntaxError) return [syntaxErrorDiagnostic(source, error)];
+    if (error instanceof ScoutSyntaxError) return [syntaxErrorDiagnostic(source, error)];
     throw error;
   }
 }
@@ -67,7 +67,7 @@ function symbolChildren(source, node) {
       range: nodeRange(source, member),
       selectionRange: { start: offsetToLspPosition(source, member.keyStart.offset), end: offsetToLspPosition(source, member.keyEnd.offset) },
       children: symbolChildren(source, member.value),
-      jovaNodeId: member.id,
+      scoutNodeId: member.id,
     }));
   }
   if (node.type === 'Array') {
@@ -77,19 +77,19 @@ function symbolChildren(source, node) {
       range: nodeRange(source, element),
       selectionRange: nodeRange(source, element.value),
       children: symbolChildren(source, element.value),
-      jovaNodeId: element.id,
+      scoutNodeId: element.id,
     }));
   }
   return [];
 }
 
 export function documentSymbols(document) {
-  if (!document?.ast) throw new TypeError('Expected a JOVA document');
+  if (!document?.ast) throw new TypeError('Expected a Scout document');
   return symbolChildren(document.source, document.ast);
 }
 
 export function hoverAt(document, position) {
-  if (!document?.source) throw new TypeError('Expected a JOVA document');
+  if (!document?.source) throw new TypeError('Expected a Scout document');
   const offset = positionToOffset(document.source, position);
   const token = tokenAt(document, offset);
   if (!token || token.type === 'trivia' || token.type === 'eof') return undefined;
@@ -97,7 +97,7 @@ export function hoverAt(document, position) {
   if (token.type === 'comment') label = `${token.value.style} comment`;
   else if (token.type === 'literal') label = typeof token.value;
   return {
-    contents: { kind: 'markdown', value: `**JOVA ${label}**\n\n\`${token.raw}\`` },
+    contents: { kind: 'markdown', value: `**Scout ${label}**\n\n\`${token.raw}\`` },
     range: { start: offsetToLspPosition(document.source, token.start.offset), end: offsetToLspPosition(document.source, token.end.offset) },
   };
 }
@@ -132,7 +132,7 @@ export function createDocumentStore() {
 
     update(uri, changes, version) {
       const entry = documents.get(uri);
-      if (!entry) throw new RangeError(`JOVA document is not open: ${uri}`);
+      if (!entry) throw new RangeError(`Scout document is not open: ${uri}`);
       if (!Array.isArray(changes)) throw new TypeError('changes must be an array');
       const applied = applyChangesToSource(entry.document.source, changes);
 
@@ -141,7 +141,7 @@ export function createDocumentStore() {
           reparseIncremental(entry.document, applied.edits);
           entry.lastValid = structuredClone(entry.document);
         } catch (error) {
-          if (!(error instanceof JovaSyntaxError)) throw error;
+          if (!(error instanceof ScoutSyntaxError)) throw error;
           entry.document = parseTolerant(applied.source, entry.lastValid ?? entry.document);
         }
       } else {
