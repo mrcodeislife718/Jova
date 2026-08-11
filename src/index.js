@@ -39,3 +39,7 @@ export {
 export { createLanguageServer } from './lsp-server.js';
 export { encodeMessage, MessageReader, runStdioServer } from './lsp-stdio.js';
 export { ScoutSyntaxError } from './errors.js';
+export { TARGET_PROFILES, listTargetProfiles, getTargetProfile, targetSupports } from './targets.js';
+export { BRIDGES, INTEROP_TYPES, listBridges, getBridge, defineForeignFunction } from './bridges.js';
+export { PACKAGE_MANAGERS, detectPackageManager, addDependencyCommand, installCommand, createScoutAppCommand } from './package-managers.js';
+export { discoverCapabilities, doctorReport } from './capabilities.js';
