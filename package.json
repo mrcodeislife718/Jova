@@ -1,11 +1,11 @@
 {
-  "name": "jova",
+  "name": "scout",
   "version": "0.4.2",
-  "description": "JOVA reference implementation with native comments, resilient parsing, editor intelligence, and a runnable language server for .jova files.",
+  "description": "Scout reference implementation with native comments, resilient parsing, editor intelligence, and a runnable language server for .scout files.",
   "type": "module",
   "bin": {
-    "jova": "./src/cli.js",
-    "jova-lsp": "./src/lsp-stdio.js"
+    "scout": "./src/cli.js",
+    "scout-lsp": "./src/lsp-stdio.js"
   },
   "exports": "./src/index.js",
   "scripts": {
