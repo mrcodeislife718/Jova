@@ -8,6 +8,10 @@
   "categories": ["Programming Languages"],
   "main": "./extension.js",
   "activationEvents": ["onLanguage:jova"],
+  "scripts": {
+    "prepare-server": "node ./scripts/prepare-server.js",
+    "vscode:prepublish": "npm run prepare-server"
+  },
   "contributes": {
     "languages": [
       {
@@ -27,5 +31,8 @@
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.6.0"
   }
 }
