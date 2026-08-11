@@ -5,7 +5,7 @@ import { parse, toJSON, fromJSON, serializeDocument } from './index.js';
 const [command, file] = process.argv.slice(2);
 
 function usage(code = 0) {
-  console.log(`jova <command> <file>\n\nCommands:\n  parse      Parse and print semantic value, AST, and comments\n  validate   Validate a JOVA document\n  to-json    Convert JOVA to JSON\n  from-json  Convert JSON to JOVA\n  format     Format JOVA while preserving attached comments`);
+  console.log(`scout <command> <file>\n\nCommands:\n  parse      Parse and print semantic value, AST, and comments\n  validate   Validate a Scout document\n  to-json    Convert Scout to JSON\n  from-json  Convert JSON to Scout\n  format     Format Scout while preserving attached comments`);
   process.exit(code);
 }
 
@@ -16,7 +16,7 @@ let source;
 try {
   source = fs.readFileSync(file, 'utf8');
 } catch (error) {
-  console.error(`jova: ${error.message}`);
+  console.error(`scout: ${error.message}`);
   process.exit(2);
 }
 
@@ -27,7 +27,7 @@ try {
       break;
     case 'validate':
       parse(source);
-      console.log(`${file}: valid JOVA`);
+      console.log(`${file}: valid Scout`);
       break;
     case 'to-json':
       console.log(toJSON(source));
@@ -39,10 +39,10 @@ try {
       console.log(serializeDocument(parse(source)));
       break;
     default:
-      console.error(`jova: unknown command ${command}`);
+      console.error(`scout: unknown command ${command}`);
       usage(1);
   }
 } catch (error) {
-  console.error(`jova: ${error.message}`);
+  console.error(`scout: ${error.message}`);
   process.exit(1);
 }
