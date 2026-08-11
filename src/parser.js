@@ -1,6 +1,6 @@
 import { tokenize } from './tokenizer.js';
 import { tokenizeLossless } from './lossless.js';
-import { JovaSyntaxError } from './errors.js';
+import { ScoutSyntaxError } from './errors.js';
 
 function toComment(token) { return { ...token.value, start: token.start, end: token.end }; }
 function scalarType(value) {
@@ -22,7 +22,7 @@ export function parse(source) {
   const comments = tokens.filter((token) => token.type === 'comment').map(toComment);
   let i = 0;
   const current = () => tokens[i];
-  const fail = (message, token = current()) => { throw new JovaSyntaxError(message, token?.start); };
+  const fail = (message, token = current()) => { throw new ScoutSyntaxError(message, token?.start); };
   const consume = (type) => { const token = current(); if (!token || token.type !== type) fail(`Expected ${type}${token ? `, found ${token.type}` : ''}`, token); i++; return token; };
   const takeComments = () => { const found = []; while (current()?.type === 'comment') found.push(toComment(tokens[i++])); return found; };
   const splitAfterComma = (comma, found) => { const trailing = [], leading = []; for (const comment of found) (comment.start.line === comma.end.line ? trailing : leading).push(comment); return { trailing, leading }; };
