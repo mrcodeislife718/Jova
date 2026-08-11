@@ -1,6 +1,6 @@
-# JOVA for VS Code
+# Scout for VS Code
 
-JOVA files use the **`.jova`** extension.
+Scout files use the **`.scout`** extension.
 
 The repository contains a VS Code extension under `vscode-extension/` and a runnable language server under `src/lsp-stdio.js`.
 
@@ -8,17 +8,17 @@ The repository contains a VS Code extension under `vscode-extension/` and a runn
 
 The extension registers:
 
-- Language ID: `jova`
-- File extension: `.jova`
-- TextMate scope: `source.jova`
+- Language ID: `scout`
+- File extension: `.scout`
+- TextMate scope: `source.scout`
 - Line comments: `//`
 - Block comments: `/* ... */`
 
-Opening any `*.jova` file activates JOVA language support.
+Opening any `*.scout` file activates Scout language support.
 
 ## Editor features
 
-The extension connects to the JOVA language server and exposes the current language-engine capabilities:
+The extension connects to the Scout language server and exposes the current language-engine capabilities:
 
 - resilient diagnostics while typing
 - completion candidates
@@ -42,7 +42,7 @@ npm run lsp
 or, after installing the package binary:
 
 ```bash
-jova-lsp
+scout-lsp
 ```
 
 The server uses Language Server Protocol JSON-RPC framing over stdio with `Content-Length` headers.
@@ -64,12 +64,12 @@ To package the extension:
 npx vsce package
 ```
 
-The resulting VSIX can be installed into VS Code and will activate for `.jova` files.
+The resulting VSIX can be installed into VS Code and will activate for `.scout` files.
 
 ## Architecture
 
 ```text
-.jova file
+.scout file
    ↓
 VS Code language registration + TextMate grammar
    ↓
@@ -77,7 +77,7 @@ vscode-languageclient
    ↓
 stdio JSON-RPC / LSP transport
    ↓
-JOVA language server dispatcher
+Scout language server dispatcher
    ↓
 recovery-aware document store
    ↓
