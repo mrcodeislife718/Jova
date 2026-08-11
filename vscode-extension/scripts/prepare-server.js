@@ -14,4 +14,4 @@ for (const entry of fs.readdirSync(sourceRoot, { withFileTypes: true })) {
 }
 
 fs.writeFileSync(path.resolve(extensionRoot, 'server', 'package.json'), JSON.stringify({ type: 'module' }, null, 2) + '\n');
-console.log('Prepared JOVA language server for VS Code packaging.');
+console.log('Prepared Scout language server for VS Code packaging.');
