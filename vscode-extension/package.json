@@ -1,13 +1,13 @@
 {
-  "name": "jova-language-support",
-  "displayName": "JOVA Language Support",
-  "description": "Language support for JOVA (.jova): comments, diagnostics, completion, hover, symbols, folding, rename, selection ranges, and quick fixes.",
+  "name": "scout-language-support",
+  "displayName": "Scout Language Support",
+  "description": "Language support for Scout (.scout): comments, diagnostics, completion, hover, symbols, folding, rename, selection ranges, and quick fixes.",
   "version": "0.1.0",
   "publisher": "mrcodeislife718",
   "engines": { "vscode": "^1.90.0" },
   "categories": ["Programming Languages"],
   "main": "./extension.js",
-  "activationEvents": ["onLanguage:jova"],
+  "activationEvents": ["onLanguage:scout"],
   "scripts": {
     "prepare-server": "node ./scripts/prepare-server.js",
     "vscode:prepublish": "npm run prepare-server"
@@ -15,17 +15,17 @@
   "contributes": {
     "languages": [
       {
-        "id": "jova",
-        "aliases": ["JOVA", "jova"],
-        "extensions": [".jova"],
+        "id": "scout",
+        "aliases": ["Scout", "scout"],
+        "extensions": [".scout"],
         "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
       {
-        "language": "jova",
-        "scopeName": "source.jova",
-        "path": "./syntaxes/jova.tmLanguage.json"
+        "language": "scout",
+        "scopeName": "source.scout",
+        "path": "./syntaxes/scout.tmLanguage.json"
       }
     ]
   },
