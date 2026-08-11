@@ -1,7 +1,7 @@
 import { parse } from './parser.js';
 import { parseRecovering } from './recovery-parser.js';
 import { reconcileSyntaxIdentity } from './identity.js';
-import { JovaSyntaxError } from './errors.js';
+import { ScoutSyntaxError } from './errors.js';
 
 function preservePreviousIdentity(previousDocument, recovered) {
   if (!previousDocument?.ast || !recovered?.ast) return recovered;
@@ -21,7 +21,7 @@ export function parseTolerant(source, previousDocument) {
     if (previousDocument?.ast) reconcileSyntaxIdentity(previousDocument, document);
     return document;
   } catch (error) {
-    if (!(error instanceof JovaSyntaxError)) throw error;
+    if (!(error instanceof ScoutSyntaxError)) throw error;
     const recovered = parseRecovering(source);
     return preservePreviousIdentity(previousDocument, recovered);
   }
