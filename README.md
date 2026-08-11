@@ -1,12 +1,10 @@
-# JOVA
+# Scout
 
 **JSON with comments — designed for configuration, readable by humans, predictable for machines.**
 
-JOVA is a data format built from the simplicity and familiarity of JSON while adding something developers routinely need:
+Scout keeps JSON's familiar data model while adding native comments, lossless document editing, resilient parsing, and editor tooling.
 
-**native comments.**
-
-```jova
+```scout
 {
   // Application configuration
   "app": {
@@ -22,201 +20,65 @@ JOVA is a data format built from the simplicity and familiarity of JSON while ad
 }
 ```
 
-The goal is simple:
-
 > Keep the parts of JSON that made it universal while making configuration files easier to explain, maintain, and work with.
 
----
+## Why Scout?
 
-## Why JOVA?
+JSON is excellent for structured data, but configuration and machine-readable documents often need human context. Scout lets documentation live beside the values it explains without turning configuration into executable code.
 
-JSON is excellent for exchanging structured data.
+## Core guarantees
 
-But developers also use JSON for:
+- Every valid JSON document remains valid Scout syntax.
+- Scout preserves the JSON value model: object, array, string, number, boolean, and null.
+- `//` line comments and `/* ... */` block comments are native syntax.
+- Comments never become ordinary application data unless a consumer explicitly inspects document metadata.
+- Parsing never executes code.
+- Scout can be converted to standard JSON by removing comment syntax while preserving semantic values.
+- Strict parsing and recovery-oriented editor parsing remain separate.
 
-- configuration
-- manifests
-- project settings
-- application metadata
-- infrastructure configuration
-- tooling
-- development environments
-- machine-readable documents
+## Comment syntax
 
-Those files often need something ordinary JSON deliberately does not provide:
-
-**comments.**
-
-Developers should be able to explain *why* a value exists without maintaining a separate document or inventing metadata fields purely to hold human notes.
-
-JOVA is being built around that problem.
-
----
-
-## The Core Idea
-
-Valid JSON:
-
-```json
+```scout
 {
-  "environment": "production",
-  "port": 3000
+  // Single-line comment
+  "api": "https://example.com",
+
+  /* Block comment */
+  "retries": 3,
+
+  "timeout": 5000 // Inline comment
 }
 ```
 
-JOVA:
+## Design principles
 
-```jova
+**Familiar.** If you know JSON, you already understand basic Scout.
+
+**Minimal.** Scout does not become a programming language disguised as configuration.
+
+**Predictable.** The same document has the same semantic meaning across conforming implementations.
+
+**Human-readable.** Comments and formatting can carry context beside structured values.
+
+**Machine-friendly.** Scout preserves JSON-compatible semantic data.
+
+**Tooling-first.** The document model preserves source ranges, comments, trivia, and syntax identity for editors and automated modification.
+
+## Data model
+
+```scout
 {
-  // Runtime environment
-  "environment": "production",
-
-  // HTTP server port
-  "port": 3000
-}
-```
-
-The data remains structurally familiar.
-
-The document becomes easier for humans to understand.
-
----
-
-## Comment Syntax
-
-JOVA is designed to support familiar comment syntax.
-
-### Single-line comments
-
-```jova
-{
-  // Public API endpoint
-  "api": "https://example.com"
-}
-```
-
-### Block comments
-
-```jova
-{
-  /*
-   * Retry requests when a temporary
-   * network failure occurs.
-   */
-  "retries": 3
-}
-```
-
-### Inline comments
-
-```jova
-{
-  "timeout": 5000 // milliseconds
-}
-```
-
----
-
-## Design Principles
-
-JOVA development follows several core principles.
-
-### Familiar
-
-A developer who understands JSON should be able to understand a basic JOVA document immediately.
-
-### Minimal
-
-JOVA should not become a programming language disguised as a configuration format.
-
-New syntax must justify its existence.
-
-### Predictable
-
-The same document should have the same meaning regardless of the implementation reading it.
-
-### Human-readable
-
-Documentation can live beside the values it explains.
-
-### Machine-friendly
-
-Comments should not make the underlying structured data ambiguous.
-
-### Portable
-
-The format should eventually be practical to implement across programming languages and development environments.
-
----
-
-## Data Model
-
-JOVA begins with the familiar JSON data model:
-
-- Object
-- Array
-- String
-- Number
-- Boolean
-- Null
-
-Example:
-
-```jova
-{
-  "name": "JOVA",
+  "name": "Scout",
   "active": true,
   "version": 1,
-  "tags": [
-    "data",
-    "configuration",
-    "developer-tools"
-  ],
+  "tags": ["data", "configuration", "developer-tools"],
   "metadata": null
 }
 ```
 
-Comments provide human context without becoming ordinary application data.
+## Scout vs JSON
 
----
-
-## Example
-
-```jova
-{
-  // Application identity
-  "application": {
-    "name": "Example",
-    "environment": "production"
-  },
-
-  /*
-   * Server configuration.
-   *
-   * Keep this section synchronized with
-   * the deployment environment.
-   */
-  "server": {
-    "host": "0.0.0.0",
-    "port": 8080,
-
-    // Request timeout in milliseconds
-    "timeout": 5000
-  },
-
-  // Feature controls
-  "features": {
-    "logging": true,
-    "analytics": false
-  }
-}
-```
-
----
-
-## JOVA vs JSON
-
-| Capability | JSON | JOVA |
+| Capability | JSON | Scout |
 |---|---:|---:|
 | Objects | ✓ | ✓ |
 | Arrays | ✓ | ✓ |
@@ -227,223 +89,141 @@ Comments provide human context without becoming ordinary application data.
 | Single-line comments | ✗ | ✓ |
 | Block comments | ✗ | ✓ |
 | Inline comments | ✗ | ✓ |
-| Human annotations | Limited | ✓ |
+| Lossless document tooling | Limited | ✓ |
+| Recovery-aware editor parsing | Limited | ✓ |
 
-JOVA is not intended to replace JSON as a universal interchange format.
+Scout is not intended to replace JSON as a universal interchange format. Its focus is structured configuration and documents where humans, software, and development tools need to work with the same source.
 
-Its initial focus is the places where developers need **structured data and human explanation in the same document**.
+## File extension
 
----
-
-## Intended Uses
-
-JOVA is being designed for use cases such as:
+Scout documents use:
 
 ```text
-app.jova
-config.jova
-settings.jova
-manifest.jova
-environment.jova
-project.jova
+.scout
 ```
 
-Potential applications include:
+Examples:
 
-- application configuration
-- development tooling
-- project manifests
-- infrastructure configuration
-- local development settings
-- AI/automation configuration
-- documented structured data
+```text
+app.scout
+config.scout
+settings.scout
+manifest.scout
+```
 
----
+## CLI
 
-## What JOVA Is Not
+The package exposes two binaries:
 
-JOVA is not intended to become:
+```text
+scout
+scout-lsp
+```
+
+Current CLI workflows:
+
+```bash
+scout parse config.scout
+scout validate config.scout
+scout format config.scout
+scout to-json config.scout
+scout from-json config.json
+```
+
+The language server can be started with:
+
+```bash
+npm run lsp
+```
+
+or:
+
+```bash
+scout-lsp
+```
+
+## Architecture
+
+```text
+Scout Source (.scout)
+      │
+      ▼
+Tokenizer + Lossless Lexer
+      │
+      ▼
+Strict Parser / Recovery Parser
+      │
+      ▼
+Scout Document Model
+      │
+      ├── JSON-equivalent semantic value
+      ├── AST
+      ├── comments
+      ├── lossless tokens
+      ├── source ranges
+      └── persistent syntax identity
+      │
+      ▼
+Transactions + Incremental Reparse
+      │
+      ▼
+Formatter / Serializer / Editor Intelligence / LSP
+```
+
+## Current implementation
+
+Scout 0.4.2 includes:
+
+- strict parsing of JSON-compatible values plus native comments
+- lossless tokens and source preservation
+- comment attachment metadata
+- source-oriented editing
+- edit transactions, undo, and redo
+- persistent syntax identity reconciliation
+- regional incremental reparsing and regional token reuse
+- tolerant recovery parsing for malformed intermediate editing states
+- mixed valid/recovery syntax trees
+- diagnostics and expected-token/value information
+- completion candidates and quick fixes
+- hover, document symbols, folding, selection ranges, and property rename edits
+- recovery-aware document synchronization
+- runnable stdio JSON-RPC Language Server Protocol transport
+- VS Code language support for `.scout`
+
+## VS Code
+
+The VS Code extension registers:
+
+```text
+Language ID: scout
+Extension:   .scout
+Scope:       source.scout
+```
+
+See [`VSCODE.md`](./VSCODE.md) for packaging and editor integration details.
+
+## Specification
+
+The current grammar and implementation contract live in [`SPEC.md`](./SPEC.md).
+
+## What Scout is not
+
+Scout is not intended to become:
 
 - a scripting language
 - a template engine
 - an executable configuration system
+- an environment-variable runtime
 - a replacement for every serialization format
-- JSON with an unlimited collection of unrelated syntax extensions
+- JSON plus an unlimited collection of unrelated syntax extensions
 
-The value of the format depends on keeping it understandable.
+Scout's value depends on staying understandable and deterministic.
 
----
+## Project status
 
-## Architecture
+**Active development — version 0.4.2.**
 
-The project will be developed in layers:
-
-```text
-JOVA Source
-    │
-    ▼
-Tokenizer
-    │
-    ▼
-Parser
-    │
-    ▼
-JOVA Document Model
-    │
-    ├── Structured Values
-    │
-    └── Comments
-    │
-    ▼
-Serializer / Formatter
-```
-
-This separation is important.
-
-Applications may only care about the resulting values.
-
-Developer tools may also need access to comments, source positions, formatting information, or the document structure.
-
-The implementation should support both use cases without confusing comments with application data.
-
----
-
-## Planned Tooling
-
-JOVA's ecosystem can eventually include:
-
-- reference parser
-- serializer
-- formatter
-- validator
-- CLI
-- syntax highlighting
-- editor integration
-- JSON → JOVA conversion
-- JOVA → JSON conversion
-- language implementations
-- conformance tests
-
-These are development targets, not claims about the current implementation.
-
----
-
-## Example CLI Direction
-
-Future tooling may support workflows such as:
-
-```bash
-jova parse config.jova
-jova validate config.jova
-jova format config.jova
-jova to-json config.jova
-```
-
-The CLI interface will be finalized as the implementation develops.
-
----
-
-## File Extension
-
-JOVA documents use:
-
-```text
-.jova
-```
-
-Example:
-
-```text
-package.jova
-config.jova
-settings.jova
-```
-
----
-
-## Project Status
-
-**Early development.**
-
-The syntax, parser behavior, document model, compatibility guarantees, and specification are being developed and may change before the first stable release.
-
-Do not treat the current repository as a finalized standard.
-
----
-
-## Roadmap
-
-### Phase 1 — Language Core
-
-- [ ] Define lexical grammar
-- [ ] Define comment grammar
-- [ ] Implement tokenizer
-- [ ] Implement parser
-- [ ] Parse standard JSON values
-- [ ] Parse single-line comments
-- [ ] Parse block comments
-- [ ] Handle inline comments
-- [ ] Define error behavior
-
-### Phase 2 — Document Model
-
-- [ ] Preserve comments
-- [ ] Preserve source locations
-- [ ] Define comment attachment behavior
-- [ ] Separate semantic values from document metadata
-- [ ] Build serialization model
-
-### Phase 3 — Developer Tooling
-
-- [ ] CLI
-- [ ] Validator
-- [ ] Formatter
-- [ ] JSON → JOVA converter
-- [ ] JOVA → JSON converter
-- [ ] Useful parser diagnostics
-
-### Phase 4 — Ecosystem
-
-- [ ] Syntax highlighting
-- [ ] VS Code support
-- [ ] Language integrations
-- [ ] Conformance test suite
-- [ ] Formal specification
-- [ ] Stable compatibility rules
-
----
-
-## Compatibility
-
-One of JOVA's important design questions is the relationship between JOVA and JSON.
-
-The intended direction is straightforward:
-
-> JSON should remain familiar inside JOVA, while JOVA-aware tooling handles JOVA-specific syntax such as comments.
-
-Exact compatibility guarantees will be defined by the specification and proven by the reference implementation and conformance tests.
-
----
-
-## Philosophy
-
-Configuration is both **data** and **communication**.
-
-Machines need structure.
-
-Humans need context.
-
-JOVA is being built to give both a place in the same document without sacrificing the simplicity that makes JSON useful.
-
----
-
-## Contributing
-
-JOVA is currently in early development.
-
-Issues, implementation feedback, parser edge cases, interoperability concerns, and specification discussions will become increasingly useful as the core implementation stabilizes.
-
----
+The parser, lossless document model, incremental editing system, recovery architecture, LSP transport, and VS Code integration are implemented. The format is still pre-1.0, so compatibility guarantees may continue to evolve until the stable specification is frozen.
 
 ## License
 
@@ -451,6 +231,6 @@ MIT
 
 ---
 
-**JOVA**
+**Scout**
 
 *Structured for machines. Documented for humans.*
