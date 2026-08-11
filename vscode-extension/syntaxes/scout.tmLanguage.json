@@ -1,0 +1,41 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Scout",
+  "scopeName": "source.scout",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#constants" },
+    { "include": "#keys" },
+    { "match": "[{}\\[\\],:]", "name": "punctuation.separator.scout" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "begin": "/\\*", "end": "\\*/", "name": "comment.block.scout" },
+        { "match": "//.*$", "name": "comment.line.double-slash.scout" }
+      ]
+    },
+    "strings": {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.scout",
+      "patterns": [
+        { "match": "\\\\(?:[\"\\\\/bfnrt]|u[0-9A-Fa-f]{4})", "name": "constant.character.escape.scout" }
+      ]
+    },
+    "numbers": {
+      "match": "(?<![\\w.])-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?(?![\\w.])",
+      "name": "constant.numeric.scout"
+    },
+    "constants": {
+      "match": "\\b(?:true|false|null)\\b",
+      "name": "constant.language.scout"
+    },
+    "keys": {
+      "match": "\"(?:[^\"\\\\]|\\\\.)*\"(?=\\s*:)",
+      "name": "support.type.property-name.scout"
+    }
+  }
+}
