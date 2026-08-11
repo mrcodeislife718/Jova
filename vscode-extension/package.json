@@ -1,0 +1,31 @@
+{
+  "name": "jova-language-support",
+  "displayName": "JOVA Language Support",
+  "description": "Language support for JOVA (.jova): comments, diagnostics, completion, hover, symbols, folding, rename, selection ranges, and quick fixes.",
+  "version": "0.1.0",
+  "publisher": "mrcodeislife718",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Programming Languages"],
+  "main": "./extension.js",
+  "activationEvents": ["onLanguage:jova"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "jova",
+        "aliases": ["JOVA", "jova"],
+        "extensions": [".jova"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "jova",
+        "scopeName": "source.jova",
+        "path": "./syntaxes/jova.tmLanguage.json"
+      }
+    ]
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}
