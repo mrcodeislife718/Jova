@@ -22,19 +22,20 @@ test('language server advertises editor capabilities', async () => {
   assert.equal(response.result.capabilities.hoverProvider, true);
   assert.equal(response.result.capabilities.renameProvider.prepareProvider, false);
   assert.ok(response.result.capabilities.completionProvider);
+  assert.equal(response.result.serverInfo.name, 'scout-language-server');
 });
 
-test('VS Code extension registers the .jova file extension', () => {
+test('VS Code extension registers the .scout file extension', () => {
   const manifest = JSON.parse(fs.readFileSync(new URL('../vscode-extension/package.json', import.meta.url), 'utf8'));
-  const language = manifest.contributes.languages.find((item) => item.id === 'jova');
+  const language = manifest.contributes.languages.find((item) => item.id === 'scout');
   assert.ok(language);
-  assert.ok(language.extensions.includes('.jova'));
-  assert.equal(manifest.activationEvents.includes('onLanguage:jova'), true);
+  assert.ok(language.extensions.includes('.scout'));
+  assert.equal(manifest.activationEvents.includes('onLanguage:scout'), true);
 });
 
-test('VS Code grammar is bound to the JOVA language', () => {
+test('VS Code grammar is bound to the Scout language', () => {
   const manifest = JSON.parse(fs.readFileSync(new URL('../vscode-extension/package.json', import.meta.url), 'utf8'));
-  const grammar = manifest.contributes.grammars.find((item) => item.language === 'jova');
-  assert.equal(grammar.scopeName, 'source.jova');
-  assert.equal(grammar.path, './syntaxes/jova.tmLanguage.json');
+  const grammar = manifest.contributes.grammars.find((item) => item.language === 'scout');
+  assert.equal(grammar.scopeName, 'source.scout');
+  assert.equal(grammar.path, './syntaxes/scout.tmLanguage.json');
 });
