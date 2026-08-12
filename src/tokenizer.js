@@ -1,10 +1,10 @@
-import { JovaSyntaxError } from './errors.js';
+import { ScoutSyntaxError } from './errors.js';
 
 const punctuation = new Set(['{', '}', '[', ']', ':', ',']);
 const whitespace = /[\u0020\u000A\u000D\u0009]/;
 
 export function tokenize(source) {
-  if (typeof source !== 'string') throw new TypeError('JOVA source must be a string');
+  if (typeof source !== 'string') throw new TypeError('Scout source must be a string');
 
   const tokens = [];
   let i = 0;
@@ -24,7 +24,7 @@ export function tokenize(source) {
   };
   const push = (type, value, start) => tokens.push({ type, value, start, end: pos() });
   const fail = (message, at = pos()) => {
-    throw new JovaSyntaxError(message, at);
+    throw new ScoutSyntaxError(message, at);
   };
 
   while (i < source.length) {
