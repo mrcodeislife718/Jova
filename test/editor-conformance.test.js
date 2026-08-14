@@ -20,12 +20,12 @@ test('large incremental edits preserve document identity and recover after malfo
   store.open(uri, source, 1);
   const before = store.get(uri);
   const preservedId = before.ast.members[1000].value.id;
-  const needle = '1000';
-  const offset = source.indexOf(needle, source.indexOf('"key1000"'));
+  const marker = '"key1000":1000';
+  const offset = source.indexOf(marker) + marker.lastIndexOf('1000');
   const prefix = source.slice(0, offset);
   const line = prefix.split('\n').length - 1;
   const character = prefix.length - prefix.lastIndexOf('\n') - 1;
-  store.update(uri, [{ range: { start: { line, character }, end: { line, character: character + needle.length } }, text: '9000' }], 2);
+  store.update(uri, [{ range: { start: { line, character }, end: { line, character: character + 4 } }, text: '9000' }], 2);
   const after = store.get(uri);
   assert.equal(after.value.key1000, 9000);
   assert.equal(after.ast.members[1000].value.id, preservedId);
