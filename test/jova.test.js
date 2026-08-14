@@ -207,8 +207,9 @@ test('stringify serializes semantic data', () => {
   assert.equal(stringify({ a: 1 }), '{\n  "a": 1\n}');
 });
 
-test('trailing commas are rejected', () => {
-  assert.throws(() => parse('{"a":1,}'), JovaSyntaxError);
+test('Scout 0.4 accepts object and array trailing commas', () => {
+  assert.deepEqual(parseValue('{"a":1,}'), { a: 1 });
+  assert.deepEqual(parseValue('[1,2,]'), [1, 2]);
 });
 
 test('unterminated block comments are rejected', () => {
