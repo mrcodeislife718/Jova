@@ -10,7 +10,8 @@
   "activationEvents": ["onLanguage:scout"],
   "scripts": {
     "prepare-server": "node ./scripts/prepare-server.js",
-    "vscode:prepublish": "npm run prepare-server"
+    "vscode:prepublish": "npm run prepare-server",
+    "test:host": "npm run prepare-server && node ./test/runTest.js"
   },
   "contributes": {
     "languages": [
@@ -33,6 +34,7 @@
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
+    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.6.0"
   }
 }
