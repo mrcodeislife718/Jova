@@ -8,9 +8,26 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node }}
       - run: npm test
+
+  vscode-extension-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install extension dependencies
+        working-directory: vscode-extension
+        run: npm install
+      - name: Run VS Code extension-host lifecycle proof
+        working-directory: vscode-extension
+        run: xvfb-run -a npm run test:host
