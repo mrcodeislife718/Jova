@@ -6,8 +6,10 @@ import { ScoutSyntaxError } from './errors.js';
 function preservePreviousIdentity(previousDocument, recovered) {
   if (!previousDocument?.ast || !recovered?.ast) return recovered;
   reconcileSyntaxIdentity(previousDocument, recovered);
-  recovered.lastValidDocument = previousDocument.incomplete ? previousDocument.lastValidDocument : previousDocument;
+  const lastValid = previousDocument.incomplete ? previousDocument.lastValidDocument : previousDocument;
+  recovered.lastValidDocument = lastValid;
   recovered.revision = previousDocument.revision ?? 0;
+  if (lastValid?.value !== undefined) recovered.value = structuredClone(lastValid.value);
   return recovered;
 }
 
