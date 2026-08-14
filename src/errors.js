@@ -9,3 +9,7 @@ export class ScoutSyntaxError extends SyntaxError {
     }
   }
 }
+
+// Backward-compatible name retained for the original JOVA-facing API and
+// internal modules that still reference it while Scout naming is adopted.
+export const JovaSyntaxError = ScoutSyntaxError;
