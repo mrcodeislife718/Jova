@@ -58,46 +58,43 @@ export function tokenize(source) {
       continue;
     }
 
-    if (ch === '"') {
-      advance();
-      let value = '';
-      let escaped = false;
-      while (i < source.length) {
-        const current = advance();
-        if (escaped) {
-          value += `\\${current}`;
-          escaped = false;
-          continue;
-        }
-        if (current === '\\') {
-          escaped = true;
-          continue;
-        }
-        if (current === '"') {
-          try { push('string', JSON.parse(`"${value}"`), start); }
-          catch { fail('Invalid string escape', start); }
-          break;
-        }
-        value += current;
-      }
-      if (tokens.at(-1)?.start !== start) fail('Unterminated string', start);
-      continue;
-    }
-
     if (punctuation.has(ch)) {
       advance();
       push(ch, ch, start);
       continue;
     }
 
-    const rest = source.slice(i);
-    const literal = rest.match(/^(true|false|null)\b/);
-    if (literal) {
-      for (let n = 0; n < literal[0].length; n++) advance();
-      push('literal', literal[0] === 'true' ? true : literal[0] === 'false' ? false : null, start);
+    if (ch === '"') {
+      const rawStart = i;
+      advance();
+      let escaped = false;
+      let closed = false;
+
+      while (i < source.length) {
+        const c = advance();
+        if (!escaped && c === '"') {
+          closed = true;
+          break;
+        }
+        if (!escaped && c.charCodeAt(0) < 0x20) fail('Unescaped control character in string', start);
+        if (!escaped && c === '\\') escaped = true;
+        else escaped = false;
+      }
+
+      if (!closed) fail('Unterminated string', start);
+
+      const raw = source.slice(rawStart, i);
+      let value;
+      try {
+        value = JSON.parse(raw);
+      } catch {
+        fail('Invalid string escape', start);
+      }
+      push('string', value, start);
       continue;
     }
 
+    const rest = source.slice(i);
     const number = rest.match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/);
     if (number) {
       for (let n = 0; n < number[0].length; n++) advance();
@@ -105,8 +102,20 @@ export function tokenize(source) {
       continue;
     }
 
+    let matched = false;
+    for (const [word, value] of [['true', true], ['false', false], ['null', null]]) {
+      if (rest.startsWith(word)) {
+        for (let n = 0; n < word.length; n++) advance();
+        push('literal', value, start);
+        matched = true;
+        break;
+      }
+    }
+    if (matched) continue;
+
     fail(`Unexpected character ${JSON.stringify(ch)}`, start);
   }
 
+  tokens.push({ type: 'eof', value: null, start: pos(), end: pos() });
   return tokens;
 }
