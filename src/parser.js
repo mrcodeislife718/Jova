@@ -53,7 +53,10 @@ export function parse(source) {
       if (current()?.type === '}') { const close = consume('}'); return { value: out, node: { type: 'Object', members, start: open.start, end: close.end, leadingComments, trailingComments: [], danglingComments: [] } }; }
       const comma = consume(','), postComma = splitAfterComma(comma, takeComments());
       member.trailingComments.push(...postComma.trailing); pending = postComma.leading;
-      if (current()?.type === '}') fail('Trailing commas are not allowed');
+      if (current()?.type === '}') {
+        const close = consume('}');
+        return { value: out, node: { type: 'Object', members, start: open.start, end: close.end, leadingComments, trailingComments: [], danglingComments: pending, trailingComma: true } };
+      }
     }
   }
 
@@ -69,7 +72,10 @@ export function parse(source) {
       if (current()?.type === ']') { const close = consume(']'); return { value: out, node: { type: 'Array', elements, start: open.start, end: close.end, leadingComments, trailingComments: [], danglingComments: [] } }; }
       const comma = consume(','), postComma = splitAfterComma(comma, takeComments());
       element.trailingComments.push(...postComma.trailing); pending = postComma.leading;
-      if (current()?.type === ']') fail('Trailing commas are not allowed');
+      if (current()?.type === ']') {
+        const close = consume(']');
+        return { value: out, node: { type: 'Array', elements, start: open.start, end: close.end, leadingComments, trailingComments: [], danglingComments: pending, trailingComma: true } };
+      }
     }
   }
 
