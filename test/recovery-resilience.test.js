@@ -58,7 +58,7 @@ test('nested damaged object retains later valid members', () => {
 
 test('editor store survives malformed edits and restores strict parsing when repaired', () => {
   const store = createDocumentStore();
-  const uri = 'file:///config.jova';
+  const uri = 'file:///config.scout';
   store.open(uri, '{"host":"localhost","port":5432}', 1);
   store.update(uri, [{ range: { start: { line:0, character:8 }, end:{ line:0, character:19 } }, text:'' }], 2);
   const damaged = store.get(uri);
@@ -81,12 +81,12 @@ test('recovery state drives completions and quick fixes', () => {
 test('LSP dispatcher exposes diagnostics, symbols, completion and rename', async () => {
   const server = createLanguageServer();
   const init = await server.dispatch({ jsonrpc:'2.0', id:1, method:'initialize', params:{} });
-  assert.equal(init.result.serverInfo.name, 'jova-language-server');
-  await server.dispatch({ jsonrpc:'2.0', method:'textDocument/didOpen', params:{ textDocument:{ uri:'file:///x.jova', version:1, text:'{"host":,"port":1}' } } });
-  const diagnostics = await server.dispatch({ jsonrpc:'2.0', id:2, method:'textDocument/diagnostic', params:{ textDocument:{ uri:'file:///x.jova' } } });
+  assert.equal(init.result.serverInfo.name, 'scout-language-server');
+  await server.dispatch({ jsonrpc:'2.0', method:'textDocument/didOpen', params:{ textDocument:{ uri:'file:///x.scout', version:1, text:'{"host":,"port":1}' } } });
+  const diagnostics = await server.dispatch({ jsonrpc:'2.0', id:2, method:'textDocument/diagnostic', params:{ textDocument:{ uri:'file:///x.scout' } } });
   assert.ok(diagnostics.result.items.length > 0);
-  const symbols = await server.dispatch({ jsonrpc:'2.0', id:3, method:'textDocument/documentSymbol', params:{ textDocument:{ uri:'file:///x.jova' } } });
+  const symbols = await server.dispatch({ jsonrpc:'2.0', id:3, method:'textDocument/documentSymbol', params:{ textDocument:{ uri:'file:///x.scout' } } });
   assert.ok(symbols.result.some((symbol) => symbol.name === 'port'));
-  const completion = await server.dispatch({ jsonrpc:'2.0', id:4, method:'textDocument/completion', params:{ textDocument:{ uri:'file:///x.jova' }, position:{ line:0, character:8 } } });
+  const completion = await server.dispatch({ jsonrpc:'2.0', id:4, method:'textDocument/completion', params:{ textDocument:{ uri:'file:///x.scout' }, position:{ line:0, character:8 } } });
   assert.ok(completion.result.items.length > 0);
 });
