@@ -39,3 +39,4 @@ export {
 export { createLanguageServer } from './lsp-server.js';
 export { encodeMessage, MessageReader, runStdioServer } from './lsp-stdio.js';
 export { ScoutSyntaxError } from './errors.js';
+export { validate, validateSource, compileSchema, inferSchema, conformanceCase, runConformanceSuite, coreConformanceCases } from './schema.js';
