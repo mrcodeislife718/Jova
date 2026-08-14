@@ -8,9 +8,9 @@ import {
   parse,
 } from '../src/index.js';
 
-test('language service store opens and updates JOVA documents incrementally', () => {
+test('language service store opens and updates Scout documents incrementally', () => {
   const store = createDocumentStore();
-  const uri = 'file:///config.jova';
+  const uri = 'file:///config.scout';
   store.open(uri, '{"timeout":5000,"mode":"dev"}', 1);
   const before = store.get(uri);
   const timeoutId = before.ast.members[0].value.id;
@@ -36,14 +36,15 @@ test('language service exposes document symbols', () => {
   assert.ok(symbols[0].jovaNodeId);
 });
 
-test('language service hover identifies JOVA tokens', () => {
+test('language service hover identifies Scout tokens', () => {
   const doc = parse('{"enabled":true}');
   const hover = hoverAt(doc, { line: 0, character: 11 });
   assert.match(hover.contents.value, /JOVA boolean/);
 });
 
-test('validateText returns syntax diagnostics instead of throwing', () => {
-  const diagnostics = validateText('{"a":1,}');
+test('validateText accepts Scout 0.4 trailing commas and diagnoses malformed values', () => {
+  assert.deepEqual(validateText('{"a":1,}'), []);
+  const diagnostics = validateText('{"a":}');
   assert.equal(diagnostics.length, 1);
   assert.equal(diagnostics[0].source, 'jova');
   assert.equal(diagnostics[0].severity, 1);
@@ -51,7 +52,7 @@ test('validateText returns syntax diagnostics instead of throwing', () => {
 
 test('document store closes documents', () => {
   const store = createDocumentStore();
-  store.open('file:///x.jova', '{"x":1}');
-  assert.equal(store.close('file:///x.jova'), true);
-  assert.equal(store.get('file:///x.jova'), undefined);
+  store.open('file:///x.scout', '{"x":1}');
+  assert.equal(store.close('file:///x.scout'), true);
+  assert.equal(store.get('file:///x.scout'), undefined);
 });
